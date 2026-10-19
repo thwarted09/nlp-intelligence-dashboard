@@ -1,0 +1,684 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLP Intelligence Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6fb;
+            color: #1f2937;
+        }
+
+        header {
+            background: #172554;
+            color: white;
+            padding: 24px 32px;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+        }
+
+        header p {
+            margin: 0;
+            color: #cbd5e1;
+        }
+
+        main {
+            padding: 28px;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+        }
+
+        .card, .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .value {
+            font-size: 28px;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .panel h2 {
+            margin-top: 0;
+            font-size: 19px;
+        }
+
+        label {
+            display: block;
+            margin: 14px 0 6px;
+            font-weight: 600;
+        }
+
+        input, select, button {
+            padding: 11px;
+            border-radius: 7px;
+            border: 1px solid #cbd5e1;
+            font: inherit;
+        }
+
+        input, select {
+            width: 100%;
+        }
+
+        button {
+            background: #1d4ed8;
+            color: white;
+            cursor: pointer;
+            border: none;
+            margin: 14px 8px 0 0;
+        }
+
+        button:hover {
+            background: #1e40af;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .muted {
+            color: #64748b;
+        }
+
+        #status {
+            margin-top: 16px;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #475569;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        td {
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .record-title {
+            min-width: 220px;
+            max-width: 420px;
+        }
+
+        .json-preview {
+            max-width: 400px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-size: 12px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .empty-state {
+            padding: 24px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        @media (min-width: 700px) {
+            .controls {
+                display: grid;
+                grid-template-columns: 2fr 1fr 1fr;
+                gap: 16px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            main {
+                padding: 14px;
+            }
+
+            header {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>NLP Intelligence Dashboard</h1>
+        <p>Dataset exploration, filtering and NLP experiment preparation</p>
+    </header>
+
+    <main>
+        <!-- Dashboard overview -->
+        <section class="cards">
+            <div class="card">
+                <h3>Backend</h3>
+                <div class="value">Django</div>
+                <p class="muted">REST API</p>
+            </div>
+
+            <div class="card">
+                <h3>Database</h3>
+                <div class="value">MongoDB</div>
+                <p class="muted">Atlas integration</p>
+            </div>
+
+            <div class="card">
+                <h3>Datasets Discovered</h3>
+                <div class="value" id="dataset-count">—</div>
+                <p class="muted">Database collections</p>
+            </div>
+
+            <div class="card">
+                <h3>API Status</h3>
+                <div class="value" id="api-status">Checking...</div>
+                <p class="muted">Dataset endpoint</p>
+            </div>
+        </section>
+
+        <!-- Dataset controls -->
+        <section class="panel">
+            <h2>Dataset Explorer</h2>
+            <p class="muted">
+                Select a MongoDB collection to inspect and test records.
+            </p>
+
+            <label for="dataset">Dataset</label>
+            <select id="dataset">
+                <option value="">Loading datasets...</option>
+            </select>
+
+            <div class="controls">
+                <div>
+                    <label for="keyword">Keyword</label>
+                    <input id="keyword" placeholder="e.g. india">
+                </div>
+
+                <div>
+                    <label for="language">Language</label>
+                    <select id="language">
+                        <option value="">All languages</option>
+                        <option value="en">English (en)</option>
+                        <option value="hi">Hindi (hi)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="sample-size">Record Limit / Sample Size</label>
+                    <input
+                        id="sample-size"
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value="10"
+                    >
+                </div>
+            </div>
+
+            <button id="preview-btn">Preview Records</button>
+            <button id="filter-btn">Filter Records</button>
+            <button id="sample-btn">Run Random Sample</button>
+
+            <p id="status" class="muted" role="status">
+                Connecting to the dataset API...
+            </p>
+        </section>
+
+        <!-- Results overview -->
+        <section class="panel">
+            <h2>Dataset Results</h2>
+
+            <div class="cards">
+                <div class="card">
+                    <h3>Total Matching Records</h3>
+                    <div class="value" id="total-matching">—</div>
+                </div>
+
+                <div class="card">
+                    <h3>Records Returned</h3>
+                    <div class="value" id="records-returned">—</div>
+                </div>
+
+                <div class="card">
+                    <h3>Operation</h3>
+                    <div class="value" id="result-type" style="font-size:20px">
+                        Waiting
+                    </div>
+                </div>
+            </div>
+
+            <p id="table-message" class="muted">
+                Run a preview, filter, or sampling request to see results.
+            </p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title / Text</th>
+                            <th>Language</th>
+                            <th>Source</th>
+                            <th>Domain</th>
+                            <th>Inspect</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body">
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                No results loaded yet.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <details style="margin-top:20px">
+                <summary style="cursor:pointer">
+                    View raw API response
+                </summary>
+                <pre id="results" class="json-preview">Your results will appear here.</pre>
+            </details>
+        </section>
+    </main>
+
+    <script>
+        const API_BASE = "/api/datasets/";
+
+        const datasetSelect = document.getElementById("dataset");
+        const datasetCount = document.getElementById("dataset-count");
+        const apiStatus = document.getElementById("api-status");
+        const statusMessage = document.getElementById("status");
+        const results = document.getElementById("results");
+
+        const keywordInput = document.getElementById("keyword");
+        const languageInput = document.getElementById("language");
+        const sampleSizeInput = document.getElementById("sample-size");
+
+        const totalMatching = document.getElementById("total-matching");
+        const recordsReturned = document.getElementById("records-returned");
+        const resultType = document.getElementById("result-type");
+        const tableMessage = document.getElementById("table-message");
+        const resultsBody = document.getElementById("results-body");
+
+        const previewButton = document.getElementById("preview-btn");
+        const filterButton = document.getElementById("filter-btn");
+        const sampleButton = document.getElementById("sample-btn");
+
+        let datasets = [];
+
+        function showStatus(message) {
+            statusMessage.textContent = message;
+        }
+
+        function showError(message) {
+            resultsBody.replaceChildren();
+
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+
+            cell.colSpan = 6;
+            cell.className = "empty-state";
+            cell.textContent = message;
+
+            row.appendChild(cell);
+            resultsBody.appendChild(row);
+
+            tableMessage.textContent = message;
+        }
+
+        function getSelectedDataset() {
+            const index = datasetSelect.value;
+
+            if (index === "" || !datasets[Number(index)]) {
+                showStatus("Please select a dataset first.");
+                return null;
+            }
+
+            return datasets[Number(index)];
+        }
+
+        function buildDatasetURL(dataset, action) {
+            return (
+                API_BASE +
+                encodeURIComponent(dataset.database) + "/" +
+                encodeURIComponent(dataset.collection) + "/" +
+                action + "/"
+            );
+        }
+
+        function getFilters() {
+            const params = new URLSearchParams();
+
+            const keyword = keywordInput.value.trim();
+            const language = languageInput.value.trim();
+
+            if (keyword) params.set("keyword", keyword);
+            if (language) params.set("language", language);
+
+            return params;
+        }
+
+        async function fetchJSON(url) {
+            const response = await fetch(url);
+
+            let data;
+
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error(
+                    "The server returned an invalid JSON response."
+                );
+            }
+
+            if (!response.ok || data.success === false) {
+                throw new Error(
+                    data.message ||
+                    data.error ||
+                    `Request failed with HTTP ${response.status}.`
+                );
+            }
+
+            return data;
+        }
+
+        async function loadDatasets() {
+            showStatus("Loading datasets...");
+            apiStatus.textContent = "Checking...";
+
+            try {
+                const data = await fetchJSON(API_BASE);
+                datasets = data.datasets || [];
+
+                datasetSelect.replaceChildren();
+
+                if (datasets.length === 0) {
+                    datasetSelect.add(
+                        new Option("No datasets found", "")
+                    );
+
+                    datasetCount.textContent = "0";
+                    apiStatus.textContent = "Connected";
+                    showStatus("No datasets were returned by the API.");
+                    return;
+                }
+
+                datasets.forEach((dataset, index) => {
+                    const label =
+                        `${dataset.database} / ${dataset.collection}`;
+
+                    datasetSelect.add(
+                        new Option(label, String(index))
+                    );
+                });
+
+                datasetCount.textContent = datasets.length;
+                apiStatus.textContent = "Connected";
+                showStatus("Datasets loaded successfully.");
+
+            } catch (error) {
+                apiStatus.textContent = "Error";
+                datasetCount.textContent = "—";
+                showStatus("Failed to load datasets: " + error.message);
+            }
+        }
+
+        function getRecordValue(record, key) {
+            if (
+                record[key] !== undefined &&
+                record[key] !== null
+            ) {
+                return record[key];
+            }
+
+            const payload = record.raw_payload;
+
+            if (
+                payload &&
+                payload[key] !== undefined &&
+                payload[key] !== null
+            ) {
+                return payload[key];
+            }
+
+            return "";
+        }
+
+        function getRecordTitle(record) {
+            return (
+                getRecordValue(record, "title") ||
+                getRecordValue(record, "summary") ||
+                getRecordValue(record, "description") ||
+                "(No title available)"
+            );
+        }
+
+        function addCell(row, value, className = "") {
+            const cell = document.createElement("td");
+
+            cell.textContent =
+                value === null || value === undefined || value === ""
+                    ? "—"
+                    : String(value);
+
+            if (className) {
+                cell.className = className;
+            }
+
+            row.appendChild(cell);
+            return cell;
+        }
+
+        function showResults(data, action) {
+            results.textContent = JSON.stringify(data, null, 2);
+            resultsBody.replaceChildren();
+
+            const records = Array.isArray(data.preview)
+                ? data.preview
+                : [];
+
+            const total =
+                data.total_matching ??
+                data.total_records ??
+                data.count ??
+                records.length;
+
+            const returned =
+                data.returned_records ??
+                records.length;
+
+            totalMatching.textContent = total;
+            recordsReturned.textContent = returned;
+
+            resultType.textContent =
+                action === "sample" ? "Random Sample" :
+                action === "filter" ? "Filtered Results" :
+                "Preview";
+
+            if (records.length === 0) {
+                showError("No records found for this request.");
+                return;
+            }
+
+            tableMessage.textContent =
+                `Displaying ${records.length} returned records.`;
+
+            records.forEach((record, index) => {
+                const row = document.createElement("tr");
+
+                addCell(row, index + 1);
+
+                addCell(
+                    row,
+                    getRecordTitle(record),
+                    "record-title"
+                );
+
+                addCell(row, getRecordValue(record, "lang"));
+                addCell(row, getRecordValue(record, "source_name"));
+                addCell(row, getRecordValue(record, "domain"));
+
+                const actionCell = document.createElement("td");
+                const details = document.createElement("details");
+                const summary = document.createElement("summary");
+                const rawRecord = document.createElement("pre");
+
+                summary.textContent = "View JSON";
+                summary.style.cursor = "pointer";
+
+                rawRecord.className = "json-preview";
+                rawRecord.textContent = JSON.stringify(
+                    record,
+                    null,
+                    2
+                );
+
+                details.append(summary, rawRecord);
+                actionCell.appendChild(details);
+                row.appendChild(actionCell);
+
+                resultsBody.appendChild(row);
+            });
+        }
+
+        async function callDatasetAPI(action, extraParams = new URLSearchParams()) {
+            const dataset = getSelectedDataset();
+
+            if (!dataset) return;
+
+            const buttons = [previewButton, filterButton, sampleButton];
+
+            buttons.forEach(button => button.disabled = true);
+
+            showStatus(`Running ${action} request...`);
+            tableMessage.textContent = "Loading records...";
+            results.textContent = "Loading...";
+
+            try {
+                const url = new URL(
+                    buildDatasetURL(dataset, action),
+                    window.location.origin
+                );
+
+                for (const [key, value] of extraParams.entries()) {
+                    url.searchParams.set(key, value);
+                }
+
+                const data = await fetchJSON(url);
+                showResults(data, action);
+
+                showStatus(
+                    `${action} completed. Records returned: ${
+                        data.returned_records ??
+                        data.preview?.length ??
+                        data.count ??
+                        0
+                    }`
+                );
+
+            } catch (error) {
+                results.textContent = JSON.stringify(
+                    { error: error.message },
+                    null,
+                    2
+                );
+
+                showError(error.message);
+                showStatus("Request failed: " + error.message);
+
+            } finally {
+                buttons.forEach(button => button.disabled = false);
+            }
+        }
+
+        previewButton.addEventListener("click", () => {
+            const size = Number(sampleSizeInput.value);
+
+            if (!Number.isInteger(size) || size < 1 || size > 50) {
+                showStatus("Preview size must be between 1 and 50.");
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.set("limit", String(size));
+
+            callDatasetAPI("preview", params);
+        });
+
+        filterButton.addEventListener("click", () => {
+            const size = Number(sampleSizeInput.value);
+
+            if (!Number.isInteger(size) || size < 1 || size > 100) {
+                showStatus("Filter limit must be between 1 and 100.");
+                return;
+            }
+
+            const params = getFilters();
+            params.set("limit", String(size));
+
+            callDatasetAPI("filter", params);
+        });
+
+        sampleButton.addEventListener("click", () => {
+            const size = Number(sampleSizeInput.value);
+
+            if (!Number.isInteger(size) || size < 1 || size > 1000) {
+                showStatus("Sample size must be between 1 and 1000.");
+                return;
+            }
+
+            const params = getFilters();
+            params.set("size", String(size));
+
+            callDatasetAPI("sample", params);
+        });
+
+        loadDatasets();
+    </script>
+</body>
+</html>

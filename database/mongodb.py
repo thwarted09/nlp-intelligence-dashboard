@@ -66,3 +66,11 @@ def get_database(database_name):
 def list_collections(database_name):
     """List collections in the selected database."""
     return get_database(database_name).list_collection_names()
+def get_collection(database_name, collection_name):
+    """Return a collection selected by name."""
+    if not database_name or not collection_name:
+        raise ValueError(
+            "Both database and collection names are required."
+        )
+
+    return get_database(database_name)[collection_name]
