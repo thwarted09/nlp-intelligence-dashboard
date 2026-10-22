@@ -80,13 +80,20 @@ def test_url_link_lifecycle_and_exploration(client, mongo_uri):
     assert datasets_res.status_code == 200
     assert datasets_res.json()["count"] > 0
 
-    # 4. Preview collection
-    preview_res = client.get(f"/api/datasets/droneDB/drones/preview/?limit=3&connection_id={cid}")
+    # 4. Preview collection with pagination
+    preview_res = client.get(f"/api/datasets/droneDB/drones/preview/?limit=3&page=1&connection_id={cid}")
     assert preview_res.status_code == 200
     prev_data = preview_res.json()
     assert prev_data["success"] is True
     assert prev_data["returned_records"] <= 3
+    assert prev_data["page"] == 1
+    assert "total_pages" in prev_data
     assert len(prev_data["fields"]) > 0
+
+    # 4b. Test higher limit (e.g. limit=500)
+    high_limit_res = client.get(f"/api/datasets/droneDB/drones/preview/?limit=500&connection_id={cid}")
+    assert high_limit_res.status_code == 200
+    assert high_limit_res.json()["limit"] == 500
 
     # 5. Schema inspection
     schema_res = client.get(f"/api/datasets/droneDB/drones/schema/?connection_id={cid}")

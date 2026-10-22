@@ -561,6 +561,51 @@
             font-weight: 500;
         }
 
+        .btn-preset {
+            padding: 2px 7px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-preset:hover {
+            background: #eef2ff;
+            color: var(--primary);
+            border-color: #a5b4fc;
+        }
+
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 11px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .pagination-info {
+            font-size: 12.5px;
+            color: var(--muted);
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pagination-page-indicator {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
         .table-wrap {
             overflow-x: auto;
         }
@@ -914,9 +959,17 @@
                     </div>
 
                     <div class="field">
-                        <label for="sampleSize">Sample / Limit size</label>
+                        <label for="sampleSize">Limit / Sample size (max 5,000)</label>
                         <input id="sampleSize" type="number"
-                               value="10" min="1" max="1000" disabled>
+                               value="25" min="1" max="5000" disabled>
+                        <div class="preset-chips" style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button type="button" class="btn-preset" data-size="25">25</button>
+                            <button type="button" class="btn-preset" data-size="50">50</button>
+                            <button type="button" class="btn-preset" data-size="100">100</button>
+                            <button type="button" class="btn-preset" data-size="500">500</button>
+                            <button type="button" class="btn-preset" data-size="1000">1k</button>
+                            <button type="button" class="btn-preset" data-size="5000">5k</button>
+                        </div>
                     </div>
                 </div>
 
@@ -973,6 +1026,18 @@
                 </p>
             </div>
 
+            <!-- Pagination Bar -->
+            <div id="paginationBar" class="pagination-bar" style="display: none;">
+                <div class="pagination-info">
+                    Showing <strong id="pageRange">0-0</strong> of <strong id="totalItemsCount">0</strong> records
+                </div>
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" class="btn btn-light btn-small" type="button">◄ Previous</button>
+                    <span class="pagination-page-indicator">Page <span id="currentPageNum">1</span> of <span id="totalPagesNum">1</span></span>
+                    <button id="nextPageBtn" class="btn btn-light btn-small" type="button">Next ►</button>
+                </div>
+            </div>
+
             <div id="tableWrap" class="table-wrap" hidden>
                 <table>
                     <thead>
@@ -1008,6 +1073,8 @@
         let activeDatasets = [];
         let latestApiResponse = null;
         let lastOperation = null;
+        let currentPage = 1;
+        let totalPages = 1;
 
         // Elements
         const connectionStatus = document.getElementById("connectionStatus");
@@ -1036,6 +1103,15 @@
         const collectionMetaBar = document.getElementById("collectionMetaBar");
         const schemaChipsList = document.getElementById("schemaChipsList");
         const collectionDocCount = document.getElementById("collectionDocCount");
+
+        // Pagination Elements
+        const paginationBar = document.getElementById("paginationBar");
+        const pageRange = document.getElementById("pageRange");
+        const totalItemsCount = document.getElementById("totalItemsCount");
+        const currentPageNum = document.getElementById("currentPageNum");
+        const totalPagesNum = document.getElementById("totalPagesNum");
+        const prevPageBtn = document.getElementById("prevPageBtn");
+        const nextPageBtn = document.getElementById("nextPageBtn");
 
         // Buttons
         const previewBtn = document.getElementById("previewBtn");
@@ -1382,6 +1458,9 @@
             setFormDisabled(true);
             updateActiveSelectionTag();
             collectionMetaBar.style.display = "none";
+            paginationBar.style.display = "none";
+            currentPage = 1;
+            totalPages = 1;
 
             datasetCount.textContent = "—";
             databaseCount.textContent = "—";
@@ -1451,21 +1530,26 @@
             return td;
         }
 
-        function renderRecords(records) {
+        function renderRecords(records, data = null) {
             resultsBody.replaceChildren();
 
             if (records.length === 0) {
                 tableWrap.hidden = true;
+                paginationBar.style.display = "none";
                 emptyState.hidden = false;
                 emptyHeading.textContent = "No records found";
                 emptyText.textContent = "Try altering your keyword filters or selecting another collection.";
                 return;
             }
 
+            const page = (data && data.page) ? data.page : 1;
+            const limit = (data && data.limit) ? data.limit : records.length;
+            const startIndex = (page - 1) * limit;
+
             records.forEach((record, index) => {
                 const tr = document.createElement("tr");
 
-                tr.appendChild(createCell(index + 1));
+                tr.appendChild(createCell(startIndex + index + 1));
 
                 const titleCell = document.createElement("td");
                 const title = document.createElement("div");
@@ -1513,6 +1597,24 @@
                 resultsBody.appendChild(tr);
             });
 
+            // Pagination Bar Handling
+            if (data && (lastOperation === "preview" || lastOperation === "filter")) {
+                totalPages = data.total_pages || 1;
+                currentPage = data.page || 1;
+                const total = data.total_matching ?? data.total_records ?? records.length;
+
+                paginationBar.style.display = "flex";
+                pageRange.textContent = `${startIndex + 1}–${startIndex + records.length}`;
+                totalItemsCount.textContent = Number(total).toLocaleString();
+                currentPageNum.textContent = currentPage;
+                totalPagesNum.textContent = totalPages;
+
+                prevPageBtn.disabled = currentPage <= 1;
+                nextPageBtn.disabled = currentPage >= totalPages;
+            } else {
+                paginationBar.style.display = "none";
+            }
+
             emptyState.hidden = true;
             tableWrap.hidden = false;
         }
@@ -1524,7 +1626,7 @@
             returnedCount.textContent = Number(returned).toLocaleString();
         }
 
-        function buildQuery(operation) {
+        function buildQuery(operation, page = 1) {
             const params = new URLSearchParams();
             const keyword = keywordInput.value.trim();
             const language = languageSelect.value;
@@ -1533,21 +1635,25 @@
             if (language) params.set("language", language);
             if (currentConnectionId) params.set("connection_id", currentConnectionId);
 
-            const size = Number(sampleSizeInput.value) || 10;
+            const size = Number(sampleSizeInput.value) || 25;
 
             if (operation === "preview") {
-                params.set("limit", String(Math.min(Math.max(size, 1), 100)));
+                params.set("limit", String(Math.min(Math.max(size, 1), 5000)));
+                params.set("page", String(page));
             } else if (operation === "filter") {
-                params.set("limit", String(Math.min(Math.max(size, 1), 100)));
+                params.set("limit", String(Math.min(Math.max(size, 1), 5000)));
+                params.set("page", String(page));
             } else if (operation === "sample") {
-                params.set("size", String(Math.min(Math.max(size, 1), 1000)));
+                params.set("size", String(Math.min(Math.max(size, 1), 5000)));
             }
 
             return params.toString();
         }
 
-        async function runOperation(operation, button) {
+        async function runOperation(operation, button, page = 1) {
             clearNotice();
+            currentPage = page;
+            lastOperation = operation;
 
             try {
                 const target = getSelectedDataset();
@@ -1558,7 +1664,7 @@
                     sample: "sample/"
                 }[operation];
 
-                const url = `${API_BASE}${encodeURIComponent(target.database)}/${encodeURIComponent(target.collection)}/${endpoint}?${buildQuery(operation)}`;
+                const url = `${API_BASE}${encodeURIComponent(target.database)}/${encodeURIComponent(target.collection)}/${endpoint}?${buildQuery(operation, page)}`;
 
                 setLoading(true, button);
                 document.getElementById("resultDescription").textContent = "Fetching documents from MongoDB...";
@@ -1568,15 +1674,15 @@
                 latestApiResponse = data;
                 const records = getRecords(data);
 
-                renderRecords(records);
+                renderRecords(records, data);
                 updateStatistics(data, records);
 
                 rawResponse.textContent = JSON.stringify(data, null, 2);
                 document.getElementById("resultTime").textContent = new Date().toLocaleTimeString();
                 document.getElementById("resultDescription").textContent =
-                    `Showing ${records.length} records from ${target.database}.${target.collection}`;
+                    `Showing ${records.length} records from ${target.database}.${target.collection}` +
+                    (data.total_pages ? ` (Page ${data.page} of ${data.total_pages})` : "");
 
-                lastOperation = operation;
                 showNotice(`Completed ${operation} operation successfully.`, "success");
 
             } catch (err) {
@@ -1586,6 +1692,29 @@
                 setLoading(false);
             }
         }
+
+        // Preset Limit Chips Event Listeners
+        document.querySelectorAll(".btn-preset").forEach(btn => {
+            btn.addEventListener("click", () => {
+                if (!sampleSizeInput.disabled) {
+                    sampleSizeInput.value = btn.dataset.size;
+                    showNotice(`Limit set to ${btn.dataset.size} records.`, "success");
+                }
+            });
+        });
+
+        // Pagination Buttons
+        prevPageBtn.addEventListener("click", () => {
+            if (currentPage > 1 && lastOperation) {
+                runOperation(lastOperation, null, currentPage - 1);
+            }
+        });
+
+        nextPageBtn.addEventListener("click", () => {
+            if (currentPage < totalPages && lastOperation) {
+                runOperation(lastOperation, null, currentPage + 1);
+            }
+        });
 
         // Export as JSON Handler
         exportJsonBtn.addEventListener("click", () => {
@@ -1613,14 +1742,14 @@
         });
 
         // Event Listeners
-        previewBtn.addEventListener("click", () => runOperation("preview", previewBtn));
-        filterBtn.addEventListener("click", () => runOperation("filter", filterBtn));
-        sampleBtn.addEventListener("click", () => runOperation("sample", sampleBtn));
+        previewBtn.addEventListener("click", () => runOperation("preview", previewBtn, 1));
+        filterBtn.addEventListener("click", () => runOperation("filter", filterBtn, 1));
+        sampleBtn.addEventListener("click", () => runOperation("sample", sampleBtn, 1));
 
         resetBtn.addEventListener("click", () => {
             keywordInput.value = "";
             languageSelect.value = "";
-            sampleSizeInput.value = "10";
+            sampleSizeInput.value = "25";
             clearNotice();
             showNotice("Filters reset.", "success");
         });

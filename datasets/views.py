@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import re
 
 from bson import json_util
@@ -270,21 +271,29 @@ def collection_schema(request, database_name, collection_name):
 
 @require_GET
 def collection_preview(request, database_name, collection_name):
-    """Preview records from a collection on the active connection."""
+    """Preview records from a collection with pagination support and limits up to 5,000."""
     connection_id = _get_connection_id(request)
     error = _validate_target(database_name, collection_name, connection_id)
     if error:
         return error
 
-    limit, error = _parse_int(request, "limit", 10, 1, 100)
+    limit, error = _parse_int(request, "limit", 25, 1, 5000)
     if error:
         return error
+
+    page, error = _parse_int(request, "page", 1, 1, 100000)
+    if error:
+        return error
+
+    skip = (page - 1) * limit
 
     try:
         collection = get_collection(database_name, collection_name, connection_id)
 
         total_records = collection.count_documents({})
-        documents = list(collection.find({}).limit(limit))
+        total_pages = math.ceil(total_records / limit) if total_records > 0 else 1
+
+        documents = list(collection.find({}).skip(skip).limit(limit))
         preview = _to_json_safe(documents)
 
         fields = sorted({key for document in documents for key in document})
@@ -295,6 +304,9 @@ def collection_preview(request, database_name, collection_name):
             "collection": collection_name,
             "connection_id": connection_id,
             "total_records": total_records,
+            "page": page,
+            "total_pages": total_pages,
+            "limit": limit,
             "returned_records": len(preview),
             "fields": fields,
             "preview": preview,
@@ -307,15 +319,21 @@ def collection_preview(request, database_name, collection_name):
 
 @require_GET
 def filter_collection(request, database_name, collection_name):
-    """Filter records within a collection on the active connection."""
+    """Filter records within a collection with pagination and limits up to 5,000."""
     connection_id = _get_connection_id(request)
     error = _validate_target(database_name, collection_name, connection_id)
     if error:
         return error
 
-    limit, error = _parse_int(request, "limit", 10, 1, 100)
+    limit, error = _parse_int(request, "limit", 25, 1, 5000)
     if error:
         return error
+
+    page, error = _parse_int(request, "page", 1, 1, 100000)
+    if error:
+        return error
+
+    skip = (page - 1) * limit
 
     source = request.GET.get("source", "").strip()
     language = request.GET.get("language", "").strip()
@@ -333,7 +351,9 @@ def filter_collection(request, database_name, collection_name):
         collection = get_collection(database_name, collection_name, connection_id)
 
         total_matching = collection.count_documents(query)
-        documents = list(collection.find(query).limit(limit))
+        total_pages = math.ceil(total_matching / limit) if total_matching > 0 else 1
+
+        documents = list(collection.find(query).skip(skip).limit(limit))
         preview = _to_json_safe(documents)
 
         return JsonResponse({
@@ -347,8 +367,10 @@ def filter_collection(request, database_name, collection_name):
                 "keyword": keyword,
             },
             "total_matching": total_matching,
-            "returned_records": len(preview),
+            "page": page,
+            "total_pages": total_pages,
             "limit": limit,
+            "returned_records": len(preview),
             "preview": preview,
         })
 
@@ -359,13 +381,13 @@ def filter_collection(request, database_name, collection_name):
 
 @require_GET
 def sample_collection(request, database_name, collection_name):
-    """Extract a random document sample from a collection on the active connection."""
+    """Extract a random document sample from a collection with sizes up to 5,000."""
     connection_id = _get_connection_id(request)
     error = _validate_target(database_name, collection_name, connection_id)
     if error:
         return error
 
-    sample_size, error = _parse_int(request, "size", 100, 1, 1000)
+    sample_size, error = _parse_int(request, "size", 100, 1, 5000)
     if error:
         return error
 
