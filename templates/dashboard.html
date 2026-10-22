@@ -1,22 +1,26 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NLP Intelligence Workspace</title>
+    <title>NLP Intelligence Workspace · MongoDB Connectors & Dataset Explorer</title>
 
     <style>
         :root {
             --primary: #4f46e5;
             --primary-dark: #4338ca;
-            --bg: #f5f7fb;
+            --primary-light: #eef2ff;
+            --bg: #f8fafc;
             --surface: #ffffff;
-            --text: #172033;
+            --text: #0f172a;
             --muted: #64748b;
             --border: #e2e8f0;
-            --success: #15803d;
-            --danger: #b91c1c;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
             --radius: 14px;
         }
 
@@ -28,8 +32,9 @@
             margin: 0;
             background: var(--bg);
             color: var(--text);
-            font-family: "Segoe UI", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             font-size: 14px;
+            line-height: 1.5;
         }
 
         button, input, select {
@@ -37,14 +42,15 @@
         }
 
         .topbar {
-            background: #111827;
+            background: #0f172a;
             color: white;
-            padding: 17px 5%;
+            padding: 16px 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 16px;
             flex-wrap: wrap;
+            border-bottom: 1px solid #1e293b;
         }
 
         .brand {
@@ -59,46 +65,60 @@
             display: grid;
             place-items: center;
             border-radius: 12px;
-            background: var(--primary);
-            font-size: 21px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
         }
 
         .brand h2 {
             margin: 0;
             font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
         }
 
         .brand p {
-            margin: 4px 0 0;
-            color: #cbd5e1;
+            margin: 2px 0 0;
+            color: #94a3b8;
             font-size: 12px;
         }
 
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .topbar-tag {
-            border: 1px solid #374151;
-            padding: 8px 12px;
+            border: 1px solid #334155;
+            padding: 6px 12px;
             border-radius: 20px;
-            color: #d1d5db;
+            color: #cbd5e1;
             font-size: 12px;
+            background: #1e293b;
         }
 
         .container {
             max-width: 1450px;
-            padding: 30px 5%;
+            padding: 26px 5%;
             margin: auto;
         }
 
+        /* Hero */
         .hero {
-            padding: 30px;
+            padding: 28px 32px;
             margin-bottom: 24px;
-            border: 1px solid #dbe4f0;
-            border-radius: 18px;
-            background: linear-gradient(120deg, #eef2ff, #ffffff 75%);
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 70%);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 20px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
         }
 
         .eyebrow {
@@ -106,34 +126,35 @@
             font-weight: 700;
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 1.4px;
-            margin-bottom: 10px;
+            letter-spacing: 1.2px;
+            margin-bottom: 6px;
         }
 
         .hero h1 {
-            margin: 0 0 12px;
-            font-size: clamp(25px, 3vw, 35px);
-            letter-spacing: -1px;
+            margin: 0 0 8px;
+            font-size: clamp(22px, 2.8vw, 30px);
+            letter-spacing: -0.6px;
+            color: #0f172a;
         }
 
         .hero p {
-            max-width: 650px;
+            max-width: 680px;
             margin: 0;
             color: var(--muted);
-            line-height: 1.8;
-            font-size: 14px;
+            line-height: 1.6;
+            font-size: 13.5px;
         }
 
         .status-pill {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 14px;
+            padding: 8px 14px;
             border-radius: 30px;
-            background: #dcfce7;
+            background: var(--success-bg);
             color: #166534;
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 12.5px;
+            font-weight: 600;
             white-space: nowrap;
         }
 
@@ -141,80 +162,199 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #16a34a;
+            background: var(--success);
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
         }
 
         .status-pill.offline {
-            background: #fee2e2;
+            background: var(--danger-bg);
             color: #991b1b;
         }
 
         .status-pill.offline .status-dot {
-            background: #dc2626;
+            background: var(--danger);
+            box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
         }
 
+        .status-pill.connecting {
+            background: var(--warning-bg);
+            color: #92400e;
+        }
+
+        .status-pill.connecting .status-dot {
+            background: var(--warning);
+        }
+
+        /* Connector Panel */
+        .connector-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+            overflow: hidden;
+        }
+
+        .connector-header {
+            padding: 18px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .connector-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .connector-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+        }
+
+        .connector-title h3 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .connector-title p {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        .connector-badges {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        .badge-neutral {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .badge-success {
+            background: var(--success-bg);
+            color: #15803d;
+        }
+
+        .connector-body {
+            padding: 22px 24px;
+            background: #fafbfc;
+        }
+
+        .connector-form-grid {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .connector-hint {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Stats */
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 18px;
-            margin-bottom: 25px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
         .stat-card {
             background: var(--surface);
-            padding: 23px;
+            padding: 20px 22px;
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.025);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
         }
 
         .stat-heading {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 10px;
         }
 
         .stat-label {
             color: var(--muted);
-            font-size: 13px;
+            font-size: 12.5px;
+            font-weight: 500;
         }
 
         .stat-icon {
-            width: 37px;
-            height: 37px;
-            border-radius: 10px;
-            background: #eef2ff;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--primary-light);
             color: var(--primary);
             display: grid;
             place-items: center;
-            font-size: 17px;
+            font-size: 15px;
         }
 
         .stat-value {
-            margin-top: 16px;
-            font-size: 30px;
+            margin-top: 12px;
+            font-size: 26px;
             font-weight: 750;
-            letter-spacing: -0.8px;
+            letter-spacing: -0.5px;
+            color: #0f172a;
         }
 
         .stat-note {
-            margin-top: 6px;
+            margin-top: 4px;
             color: var(--muted);
-            font-size: 12px;
+            font-size: 11.5px;
         }
 
+        /* Panels */
         .panel {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             margin-bottom: 24px;
             overflow: hidden;
-            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.025);
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.025);
         }
 
         .panel-header {
-            padding: 21px 24px;
+            padding: 18px 24px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
@@ -226,18 +366,20 @@
         .panel-header h2 {
             margin: 0;
             font-size: 16px;
+            font-weight: 700;
         }
 
         .panel-header p {
-            margin: 6px 0 0;
+            margin: 4px 0 0;
             color: var(--muted);
             font-size: 12px;
         }
 
         .panel-body {
-            padding: 24px;
+            padding: 22px 24px;
         }
 
+        /* Forms */
         .form-grid {
             display: grid;
             grid-template-columns: 2fr 1.3fr 1fr 1fr;
@@ -247,11 +389,11 @@
         .field {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 7px;
         }
 
         .field label {
-            color: #475569;
+            color: #334155;
             font-size: 12px;
             font-weight: 650;
         }
@@ -260,35 +402,86 @@
         .field select {
             width: 100%;
             min-width: 0;
-            padding: 12px;
+            padding: 11px 13px;
             border: 1px solid #cbd5e1;
-            border-radius: 9px;
+            border-radius: 8px;
             background: white;
             outline: none;
             color: var(--text);
-            transition: border-color .2s, box-shadow .2s;
+            font-size: 13.5px;
+            transition: border-color .15s, box-shadow .15s;
         }
 
         .field input:focus,
         .field select:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.10);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
+        /* Schema Field Badges */
+        .collection-meta-bar {
+            margin-top: 18px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .schema-fields-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .schema-label {
+            font-size: 11.5px;
+            font-weight: 650;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+
+        .field-chip {
+            padding: 3px 8px;
+            border-radius: 5px;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 11px;
+            font-family: monospace;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .field-chip:hover {
+            background: #cbd5e1;
         }
 
         .actions {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin-top: 22px;
+            margin-top: 20px;
         }
 
         .btn {
             border: 0;
-            border-radius: 9px;
-            padding: 11px 17px;
+            border-radius: 8px;
+            padding: 10px 16px;
             cursor: pointer;
-            font-weight: 650;
-            transition: transform .15s, background .15s;
+            font-weight: 600;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            transition: all .15s;
         }
 
         .btn:hover {
@@ -304,6 +497,7 @@
         .btn-primary {
             background: var(--primary);
             color: white;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
         }
 
         .btn-primary:hover {
@@ -311,17 +505,31 @@
         }
 
         .btn-secondary {
-            background: #eef2ff;
-            color: #3730a3;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        .btn-secondary:hover {
+            background: #e0e7ff;
         }
 
         .btn-light {
             background: #f1f5f9;
             color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-light:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-danger-light {
+            background: var(--danger-bg);
+            color: var(--danger);
         }
 
         .btn-small {
-            padding: 7px 10px;
+            padding: 6px 11px;
             font-size: 12px;
         }
 
@@ -329,16 +537,19 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .meta-chip {
-            border-radius: 8px;
-            padding: 7px 10px;
+            border-radius: 7px;
+            padding: 6px 11px;
             background: #f1f5f9;
             color: #475569;
             font-size: 12px;
+            font-weight: 500;
         }
 
+        /* Table */
         .table-wrap {
             overflow-x: auto;
         }
@@ -356,10 +567,11 @@
             text-transform: uppercase;
             letter-spacing: .5px;
             font-weight: 700;
+            border-bottom: 1px solid var(--border);
         }
 
         th, td {
-            padding: 15px 18px;
+            padding: 13px 18px;
             border-bottom: 1px solid #edf0f5;
             vertical-align: top;
         }
@@ -374,9 +586,9 @@
         }
 
         .record-title {
-            color: #172033;
-            font-weight: 650;
-            line-height: 1.5;
+            color: #0f172a;
+            font-weight: 600;
+            line-height: 1.45;
             min-width: 220px;
             max-width: 480px;
             overflow-wrap: anywhere;
@@ -385,51 +597,55 @@
         .record-subtitle {
             color: var(--muted);
             font-size: 12px;
-            margin-top: 5px;
-            line-height: 1.5;
+            margin-top: 4px;
+            line-height: 1.45;
             max-width: 480px;
             overflow-wrap: anywhere;
         }
 
         .tag {
             display: inline-block;
-            padding: 5px 9px;
-            border-radius: 6px;
-            background: #eef2ff;
-            color: #4338ca;
+            padding: 4px 8px;
+            border-radius: 5px;
+            background: var(--primary-light);
+            color: var(--primary-dark);
             font-size: 11px;
+            font-weight: 600;
             white-space: nowrap;
         }
 
         .empty-state {
-            padding: 55px 20px;
+            padding: 50px 20px;
             text-align: center;
             color: var(--muted);
         }
 
         .empty-icon {
             font-size: 32px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .empty-state h3 {
-            margin: 0 0 8px;
-            color: #334155;
-            font-size: 16px;
+            margin: 0 0 6px;
+            color: #1e293b;
+            font-size: 15px;
+            font-weight: 650;
         }
 
         .empty-state p {
             margin: 0;
-            line-height: 1.7;
+            line-height: 1.6;
+            font-size: 13px;
         }
 
         .notice {
             display: none;
-            padding: 13px 16px;
+            padding: 12px 16px;
             border-radius: 9px;
             margin-bottom: 18px;
-            line-height: 1.6;
+            line-height: 1.5;
             overflow-wrap: anywhere;
+            font-size: 13px;
         }
 
         .notice.error {
@@ -454,36 +670,39 @@
         }
 
         .json-details summary {
-            padding: 11px 13px;
+            padding: 10px 14px;
             background: #f8fafc;
             cursor: pointer;
             color: #475569;
             font-size: 12px;
-            font-weight: 650;
+            font-weight: 600;
+            user-select: none;
         }
 
         pre {
             margin: 0;
             padding: 16px;
-            background: #111827;
-            color: #d1fae5;
+            background: #0f172a;
+            color: #a7f3d0;
             font-size: 12px;
-            line-height: 1.7;
+            line-height: 1.6;
             white-space: pre-wrap;
             overflow-wrap: anywhere;
             overflow-x: auto;
             max-height: 420px;
+            font-family: Consolas, Monaco, "Courier New", monospace;
         }
 
         .footer {
-            padding: 20px 0 8px;
+            padding: 24px 0 12px;
             text-align: center;
             color: #94a3b8;
             font-size: 12px;
         }
 
         @media (max-width: 950px) {
-            .form-grid {
+            .form-grid,
+            .connector-form-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -494,33 +713,21 @@
 
         @media (max-width: 600px) {
             .container {
-                padding: 20px 4%;
+                padding: 16px 4%;
             }
 
             .hero {
-                padding: 22px;
+                padding: 20px;
             }
 
             .stats,
-            .form-grid {
+            .form-grid,
+            .connector-form-grid {
                 grid-template-columns: 1fr;
-            }
-
-            .panel-header,
-            .panel-body {
-                padding: 17px;
-            }
-
-            .stat-card {
-                padding: 19px;
             }
 
             .actions .btn {
                 flex: 1;
-            }
-
-            th, td {
-                padding: 12px;
             }
         }
     </style>
@@ -532,20 +739,23 @@
             <div class="brand-icon">N</div>
             <div>
                 <h2>NLP Intelligence Workspace</h2>
-                <p>Dataset exploration and testing platform</p>
+                <p>MongoDB Connectors & Live Dataset Exploration Platform</p>
             </div>
         </div>
-        <div class="topbar-tag">Django + MongoDB Atlas</div>
+        <div class="topbar-actions">
+            <span class="topbar-tag">MongoDB Atlas + Django Backend</span>
+        </div>
     </header>
 
     <main class="container">
+        <!-- Hero Section -->
         <section class="hero">
             <div>
-                <div class="eyebrow">Intelligence Data Platform</div>
-                <h1>Explore your datasets.</h1>
+                <div class="eyebrow">Intelligence Data Connectors</div>
+                <h1>Choose any MongoDB collection directly.</h1>
                 <p>
-                    Discover collections, inspect documents, filter text data,
-                    and generate random samples from one unified workspace.
+                    Connect directly via a MongoDB link/URI, discover accessible collections, 
+                    inspect schemas, filter records, and extract random samples for NLP pipelines.
                 </p>
             </div>
 
@@ -555,44 +765,113 @@
             </div>
         </section>
 
+        <!-- Notification Banner -->
         <div id="notice" class="notice" role="status" aria-live="polite"></div>
 
+        <!-- MongoDB Connector Manager -->
+        <section class="connector-card">
+            <div class="connector-header">
+                <div class="connector-info">
+                    <div class="connector-icon">⛃</div>
+                    <div class="connector-title">
+                        <h3 id="activeConnectorName">Default MongoDB Atlas Cluster</h3>
+                        <p id="activeConnectorDesc">Connected via environment configuration (.env)</p>
+                    </div>
+                </div>
+
+                <div class="connector-badges">
+                    <span id="connectorBadge" class="badge badge-primary">Default Connector</span>
+                    <button id="toggleConnectorFormBtn" class="btn btn-secondary btn-small">
+                        + Connect via MongoDB Link
+                    </button>
+                    <button id="resetDefaultConnectorBtn" class="btn btn-light btn-small" style="display: none;">
+                        ↺ Switch to Default Cluster
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Connector & Direct Collection Form -->
+            <div id="connectorForm" class="connector-body" style="display: none;">
+                <div class="connector-form-grid">
+                    <div class="field">
+                        <label for="mongoUriInput">MongoDB Connection Link / URI</label>
+                        <input id="mongoUriInput" type="text"
+                               placeholder="mongodb+srv://user:password@cluster0.xxx.mongodb.net/database/collection">
+                    </div>
+
+                    <div class="field">
+                        <label for="directDbInput">Database (Optional)</label>
+                        <input id="directDbInput" type="text" placeholder="e.g. Events">
+                    </div>
+
+                    <div class="field">
+                        <label for="directColInput">Collection (Optional)</label>
+                        <input id="directColInput" type="text" placeholder="e.g. news_events">
+                    </div>
+
+                    <div class="field" style="display: flex; flex-direction: row; gap: 8px;">
+                        <button id="connectUriBtn" class="btn btn-primary" style="height: 42px;">
+                            Connect & Explore
+                        </button>
+                        <button id="closeConnectorFormBtn" class="btn btn-light" style="height: 42px;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="connector-hint">
+                    <span>💡 <strong>Tip:</strong> You can paste a cluster URI or a full collection link like <code>mongodb+srv://.../Events/news_events</code> to immediately connect and open that dataset.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
         <section class="stats">
             <article class="stat-card">
                 <div class="stat-heading">
-                    <span class="stat-label">Available datasets</span>
+                    <span class="stat-label">Available Datasets</span>
                     <span class="stat-icon">▦</span>
                 </div>
                 <div id="datasetCount" class="stat-value">—</div>
-                <div class="stat-note">Discovered from MongoDB</div>
+                <div class="stat-note">Discovered in active cluster</div>
             </article>
 
             <article class="stat-card">
                 <div class="stat-heading">
-                    <span class="stat-label">Matching records</span>
+                    <span class="stat-label">Databases</span>
+                    <span class="stat-icon">🗄</span>
+                </div>
+                <div id="databaseCount" class="stat-value">—</div>
+                <div class="stat-note">Accessible user databases</div>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-heading">
+                    <span class="stat-label">Matching Records</span>
                     <span class="stat-icon">⌕</span>
                 </div>
                 <div id="matchingCount" class="stat-value">—</div>
-                <div class="stat-note">Based on the latest operation</div>
+                <div class="stat-note">From latest query</div>
             </article>
 
             <article class="stat-card">
                 <div class="stat-heading">
-                    <span class="stat-label">Records displayed</span>
+                    <span class="stat-label">Records Displayed</span>
                     <span class="stat-icon">▤</span>
                 </div>
                 <div id="returnedCount" class="stat-value">—</div>
-                <div class="stat-note">Returned by the API</div>
+                <div class="stat-note">Loaded in table view</div>
             </article>
         </section>
 
+        <!-- Dataset Explorer Panel -->
         <section class="panel">
             <div class="panel-header">
                 <div>
-                    <h2>Dataset Explorer</h2>
-                    <p>Select a collection and configure your data operation.</p>
+                    <h2>Dataset & Collection Explorer</h2>
+                    <p>Select any collection from the connector to inspect its records, schema, and text features.</p>
                 </div>
-                <span class="tag">Data workspace</span>
+                <span id="activeSelectionTag" class="tag">No Collection Selected</span>
             </div>
 
             <div class="panel-body">
@@ -600,14 +879,14 @@
                     <div class="field">
                         <label for="datasetSelect">Dataset / Collection</label>
                         <select id="datasetSelect">
-                            <option value="">Loading datasets...</option>
+                            <option value="">Loading collections...</option>
                         </select>
                     </div>
 
                     <div class="field">
                         <label for="keyword">Keyword search</label>
                         <input id="keyword" type="text"
-                               placeholder="e.g. india, technology">
+                               placeholder="e.g. military, technology, ai">
                     </div>
 
                     <div class="field">
@@ -616,39 +895,54 @@
                             <option value="">All languages</option>
                             <option value="en">English (en)</option>
                             <option value="hi">Hindi (hi)</option>
+                            <option value="es">Spanish (es)</option>
+                            <option value="fr">French (fr)</option>
                         </select>
                     </div>
 
                     <div class="field">
-                        <label for="sampleSize">Sample size</label>
+                        <label for="sampleSize">Sample / Limit size</label>
                         <input id="sampleSize" type="number"
                                value="10" min="1" max="1000">
                     </div>
                 </div>
 
+                <!-- Collection Meta Bar (Discovered Schema Fields) -->
+                <div id="collectionMetaBar" class="collection-meta-bar" style="display: none;">
+                    <div class="schema-fields-wrap">
+                        <span class="schema-label">Detected Fields:</span>
+                        <div id="schemaChipsList" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+                    </div>
+                    <div id="collectionDocCount" class="badge badge-neutral">Total Documents: —</div>
+                </div>
+
                 <div class="actions">
                     <button class="btn btn-primary" id="previewBtn">
-                        Preview records
+                        Preview Records
                     </button>
                     <button class="btn btn-secondary" id="filterBtn">
-                        Filter records
+                        Filter Records
                     </button>
                     <button class="btn btn-secondary" id="sampleBtn">
-                        Run random sample
+                        Run Random Sample ($sample)
+                    </button>
+                    <button class="btn btn-light" id="exportJsonBtn">
+                        Export as JSON
                     </button>
                     <button class="btn btn-light" id="resetBtn">
-                        Reset filters
+                        Reset Filters
                     </button>
                 </div>
             </div>
         </section>
 
+        <!-- Results Explorer Panel -->
         <section class="panel">
             <div class="panel-header">
                 <div>
-                    <h2>Results Explorer</h2>
+                    <h2>Results & Data Explorer</h2>
                     <p id="resultDescription">
-                        Choose an operation to inspect your data.
+                        Choose an operation above to inspect collection documents.
                     </p>
                 </div>
 
@@ -662,7 +956,7 @@
                 <div class="empty-icon">⌕</div>
                 <h3>Your workspace is ready</h3>
                 <p>
-                    Select a dataset and click Preview records to get started.
+                    Select any MongoDB dataset from above and click <strong>Preview Records</strong> or <strong>Run Random Sample</strong> to explore.
                 </p>
             </div>
 
@@ -671,11 +965,11 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Title / Text</th>
+                            <th>Title / Text Content</th>
                             <th>Language</th>
                             <th>Source</th>
                             <th>Domain</th>
-                            <th>Inspect</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="resultsBody"></tbody>
@@ -683,44 +977,75 @@
             </div>
 
             <details class="json-details">
-                <summary>View raw API response</summary>
+                <summary>View raw JSON response</summary>
                 <pre id="rawResponse">No API response yet.</pre>
             </details>
         </section>
 
         <footer class="footer">
-            NLP Intelligence Workspace · Django Backend · MongoDB Atlas
+            NLP Intelligence Workspace · Django 6 Backend · MongoDB Atlas Dynamic Connectors
         </footer>
     </main>
 
     <script>
         const API_BASE = "/api/datasets/";
 
+        // State
+        let currentConnectionId = null;
+        let activeDatasets = [];
+        let latestApiResponse = null;
+        let lastOperation = null;
+
+        // Elements
+        const connectionStatus = document.getElementById("connectionStatus");
+        const connectionText = document.getElementById("connectionText");
+        const notice = document.getElementById("notice");
+
+        // Connector Elements
+        const activeConnectorName = document.getElementById("activeConnectorName");
+        const activeConnectorDesc = document.getElementById("activeConnectorDesc");
+        const connectorBadge = document.getElementById("connectorBadge");
+        const toggleConnectorFormBtn = document.getElementById("toggleConnectorFormBtn");
+        const resetDefaultConnectorBtn = document.getElementById("resetDefaultConnectorBtn");
+        const connectorForm = document.getElementById("connectorForm");
+        const closeConnectorFormBtn = document.getElementById("closeConnectorFormBtn");
+        const mongoUriInput = document.getElementById("mongoUriInput");
+        const directDbInput = document.getElementById("directDbInput");
+        const directColInput = document.getElementById("directColInput");
+        const connectUriBtn = document.getElementById("connectUriBtn");
+
+        // Explorer Elements
         const datasetSelect = document.getElementById("datasetSelect");
         const keywordInput = document.getElementById("keyword");
         const languageSelect = document.getElementById("language");
         const sampleSizeInput = document.getElementById("sampleSize");
+        const activeSelectionTag = document.getElementById("activeSelectionTag");
+        const collectionMetaBar = document.getElementById("collectionMetaBar");
+        const schemaChipsList = document.getElementById("schemaChipsList");
+        const collectionDocCount = document.getElementById("collectionDocCount");
 
+        // Buttons
         const previewBtn = document.getElementById("previewBtn");
         const filterBtn = document.getElementById("filterBtn");
         const sampleBtn = document.getElementById("sampleBtn");
+        const exportJsonBtn = document.getElementById("exportJsonBtn");
         const resetBtn = document.getElementById("resetBtn");
 
-        const notice = document.getElementById("notice");
+        // Results Elements
         const resultsBody = document.getElementById("resultsBody");
         const tableWrap = document.getElementById("tableWrap");
         const emptyState = document.getElementById("emptyState");
-
         const rawResponse = document.getElementById("rawResponse");
         const datasetCount = document.getElementById("datasetCount");
+        const databaseCount = document.getElementById("databaseCount");
         const matchingCount = document.getElementById("matchingCount");
         const returnedCount = document.getElementById("returnedCount");
 
-        let lastOperation = null;
-
+        // Notifications
         function showNotice(message, type = "error") {
             notice.textContent = message;
             notice.className = "notice " + type;
+            notice.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
 
         function clearNotice() {
@@ -728,24 +1053,23 @@
             notice.className = "notice";
         }
 
-        function setConnectionStatus(online) {
-            const pill = document.getElementById("connectionStatus");
-            const text = document.getElementById("connectionText");
-
-            pill.classList.toggle("offline", !online);
-            text.textContent = online ? "API connected" : "API unavailable";
+        function setConnectionStatus(online, message = null) {
+            connectionStatus.classList.toggle("offline", !online);
+            connectionText.textContent = message || (online ? "Cluster connected" : "Cluster offline");
         }
 
         function setLoading(loading, activeButton = null) {
-            [previewBtn, filterBtn, sampleBtn, resetBtn]
-                .forEach(button => button.disabled = loading);
+            [previewBtn, filterBtn, sampleBtn, exportJsonBtn, resetBtn, connectUriBtn]
+                .forEach(button => {
+                    if (button) button.disabled = loading;
+                });
 
             if (loading && activeButton) {
                 activeButton.dataset.originalText = activeButton.textContent;
                 activeButton.textContent = "Processing...";
             } else {
-                [previewBtn, filterBtn, sampleBtn].forEach(button => {
-                    if (button.dataset.originalText) {
+                [previewBtn, filterBtn, sampleBtn, connectUriBtn].forEach(button => {
+                    if (button && button.dataset.originalText) {
                         button.textContent = button.dataset.originalText;
                         delete button.dataset.originalText;
                     }
@@ -753,9 +1077,14 @@
             }
         }
 
-        async function fetchJSON(url) {
+        async function fetchJSON(url, options = {}) {
             const response = await fetch(url, {
-                headers: { "Accept": "application/json" }
+                ...options,
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    ...(options.headers || {})
+                }
             });
 
             const text = await response.text();
@@ -764,44 +1093,274 @@
             try {
                 data = JSON.parse(text);
             } catch {
-                throw new Error(
-                    `The server returned a non-JSON response (HTTP ${response.status}).`
-                );
+                throw new Error(`The server returned non-JSON data (HTTP ${response.status}).`);
             }
 
             if (!response.ok) {
-                throw new Error(
-                    data.error || data.detail ||
-                    `Request failed with HTTP ${response.status}.`
-                );
+                throw new Error(data.error || data.detail || `Request failed with HTTP ${response.status}.`);
             }
 
             if (data.success === false) {
-                throw new Error(data.error || "The API operation failed.");
+                throw new Error(data.error || "The requested operation failed.");
             }
 
             return data;
         }
 
+        // Connector Parsing Helper
+        function parseMongoUri(uri) {
+            try {
+                // Look for path after host/port
+                const withoutProtocol = uri.replace(/^mongodb(\+srv)?:\/\//, "");
+                const slashIndex = withoutProtocol.indexOf("/");
+                if (slashIndex !== -1) {
+                    const pathAndQuery = withoutProtocol.slice(slashIndex + 1);
+                    const pathOnly = pathAndQuery.split("?")[0].trim();
+                    const parts = pathOnly.split("/").filter(Boolean);
+                    return {
+                        database: parts[0] || null,
+                        collection: parts[1] || null
+                    };
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+            return { database: null, collection: null };
+        }
+
+        // Auto-fill direct inputs when user pastes URI
+        mongoUriInput.addEventListener("input", () => {
+            const parsed = parseMongoUri(mongoUriInput.value.trim());
+            if (parsed.database && !directDbInput.value) {
+                directDbInput.value = parsed.database;
+            }
+            if (parsed.collection && !directColInput.value) {
+                directColInput.value = parsed.collection;
+            }
+        });
+
+        // Load Datasets for Current Connection
+        async function loadDatasets(connectionId = currentConnectionId, preferredSelection = null) {
+            clearNotice();
+            datasetSelect.innerHTML = '<option value="">Loading collections...</option>';
+
+            try {
+                const url = API_BASE + (connectionId ? `?connection_id=${encodeURIComponent(connectionId)}` : "");
+                const data = await fetchJSON(url);
+                activeDatasets = Array.isArray(data.datasets) ? data.datasets : [];
+                const databases = Array.isArray(data.databases) ? data.databases : [];
+
+                datasetSelect.replaceChildren();
+
+                if (activeDatasets.length === 0) {
+                    datasetSelect.add(new Option("No collections found in cluster", ""));
+                    datasetCount.textContent = "0";
+                    databaseCount.textContent = databases.length.toString();
+                    setConnectionStatus(true);
+                    showNotice("Connected, but no user collections were found.", "warning");
+                    return;
+                }
+
+                // Group collections by database
+                const dbGroups = {};
+                activeDatasets.forEach(item => {
+                    const db = item.database;
+                    const col = item.collection;
+                    if (!dbGroups[db]) dbGroups[db] = [];
+                    dbGroups[db].push(col);
+                });
+
+                let matchingOptionValue = null;
+
+                Object.keys(dbGroups).sort().forEach(db => {
+                    const optgroup = document.createElement("optgroup");
+                    optgroup.label = `Database: ${db}`;
+
+                    dbGroups[db].sort().forEach(col => {
+                        const val = `${db}::${col}`;
+                        const opt = new Option(`${db} / ${col}`, val);
+                        optgroup.appendChild(opt);
+
+                        if (preferredSelection &&
+                            preferredSelection.database === db &&
+                            preferredSelection.collection === col) {
+                            matchingOptionValue = val;
+                        }
+                    });
+
+                    datasetSelect.appendChild(optgroup);
+                });
+
+                if (matchingOptionValue) {
+                    datasetSelect.value = matchingOptionValue;
+                }
+
+                datasetCount.textContent = activeDatasets.length.toLocaleString();
+                databaseCount.textContent = Object.keys(dbGroups).length.toLocaleString();
+                setConnectionStatus(true);
+                updateActiveSelectionTag();
+                inspectCollectionSchema();
+
+            } catch (error) {
+                datasetSelect.replaceChildren(new Option("Unable to load collections", ""));
+                datasetCount.textContent = "—";
+                databaseCount.textContent = "—";
+                setConnectionStatus(false, "Connection error");
+                showNotice("Could not load datasets: " + error.message);
+            }
+        }
+
+        // Get currently selected database & collection
         function getSelectedDataset() {
-            const value = datasetSelect.value;
-
-            if (!value) {
-                throw new Error("Please select a dataset first.");
-            }
-
-            const separator = value.indexOf("::");
-
-            if (separator === -1) {
-                throw new Error("Invalid dataset selection.");
-            }
-
+            const val = datasetSelect.value;
+            if (!val) throw new Error("Please select a collection first.");
+            const sep = val.indexOf("::");
+            if (sep === -1) throw new Error("Invalid collection selection.");
             return {
-                database: value.slice(0, separator),
-                collection: value.slice(separator + 2)
+                database: val.slice(0, sep),
+                collection: val.slice(sep + 2)
             };
         }
 
+        function updateActiveSelectionTag() {
+            try {
+                const target = getSelectedDataset();
+                activeSelectionTag.textContent = `${target.database} · ${target.collection}`;
+            } catch {
+                activeSelectionTag.textContent = "No Collection Selected";
+            }
+        }
+
+        datasetSelect.addEventListener("change", () => {
+            updateActiveSelectionTag();
+            inspectCollectionSchema();
+        });
+
+        // Inspect Collection Schema & Total Documents
+        async function inspectCollectionSchema() {
+            try {
+                const target = getSelectedDataset();
+                const url = `${API_BASE}${encodeURIComponent(target.database)}/${encodeURIComponent(target.collection)}/schema/` +
+                    (currentConnectionId ? `?connection_id=${encodeURIComponent(currentConnectionId)}` : "");
+
+                const data = await fetchJSON(url);
+                collectionMetaBar.style.display = "flex";
+                collectionDocCount.textContent = `Total Documents: ${Number(data.total_records || 0).toLocaleString()}`;
+
+                schemaChipsList.replaceChildren();
+                const fields = Array.isArray(data.fields) ? data.fields : [];
+
+                if (fields.length === 0) {
+                    schemaChipsList.textContent = "No fields detected";
+                } else {
+                    fields.forEach(f => {
+                        const chip = document.createElement("span");
+                        chip.className = "field-chip";
+                        chip.textContent = f;
+                        chip.title = `Field '${f}' in this collection`;
+                        chip.addEventListener("click", () => {
+                            keywordInput.value = f;
+                            showNotice(`Filtered keyword set to '${f}'`, "success");
+                        });
+                        schemaChipsList.appendChild(chip);
+                    });
+                }
+            } catch {
+                collectionMetaBar.style.display = "none";
+            }
+        }
+
+        // Connect via MongoDB Link Button Handler
+        connectUriBtn.addEventListener("click", async () => {
+            const uri = mongoUriInput.value.trim();
+            if (!uri) {
+                showNotice("Please enter a valid MongoDB connection URI.");
+                return;
+            }
+
+            clearNotice();
+            setLoading(true, connectUriBtn);
+
+            try {
+                const payload = {
+                    uri: uri,
+                    database: directDbInput.value.trim() || undefined,
+                    collection: directColInput.value.trim() || undefined
+                };
+
+                const res = await fetchJSON(API_BASE + "connect/", {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+
+                currentConnectionId = res.connection_id;
+                activeConnectorName.textContent = "Custom MongoDB Link";
+                activeConnectorDesc.textContent = res.masked_uri || uri;
+                connectorBadge.textContent = "Custom Link Connector";
+                connectorBadge.className = "badge badge-success";
+                resetDefaultConnectorBtn.style.display = "inline-flex";
+                connectorForm.style.display = "none";
+
+                showNotice("Connected successfully to MongoDB link!", "success");
+
+                const preferred = (res.default_database && res.default_collection)
+                    ? { database: res.default_database, collection: res.default_collection }
+                    : null;
+
+                await loadDatasets(currentConnectionId, preferred);
+
+                if (preferred) {
+                    // Auto run preview if user specified a collection!
+                    runOperation("preview", previewBtn);
+                }
+
+            } catch (err) {
+                showNotice("Connection failed: " + err.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Switch to Default Cluster Handler
+        resetDefaultConnectorBtn.addEventListener("click", async () => {
+            if (currentConnectionId) {
+                try {
+                    await fetchJSON(API_BASE + "disconnect/", {
+                        method: "POST",
+                        body: JSON.stringify({ connection_id: currentConnectionId })
+                    });
+                } catch {
+                    // Clean up regardless
+                }
+            }
+
+            currentConnectionId = null;
+            activeConnectorName.textContent = "Default MongoDB Atlas Cluster";
+            activeConnectorDesc.textContent = "Connected via environment configuration (.env)";
+            connectorBadge.textContent = "Default Connector";
+            connectorBadge.className = "badge badge-primary";
+            resetDefaultConnectorBtn.style.display = "none";
+            mongoUriInput.value = "";
+            directDbInput.value = "";
+            directColInput.value = "";
+
+            showNotice("Switched back to Default MongoDB Atlas Cluster.", "success");
+            await loadDatasets(null);
+        });
+
+        toggleConnectorFormBtn.addEventListener("click", () => {
+            const isVisible = connectorForm.style.display === "block";
+            connectorForm.style.display = isVisible ? "none" : "block";
+            if (!isVisible) {
+                mongoUriInput.focus();
+            }
+        });
+
+        closeConnectorFormBtn.addEventListener("click", () => {
+            connectorForm.style.display = "none";
+        });
+
+        // Document helpers
         function getRecords(data) {
             if (Array.isArray(data.preview)) return data.preview;
             if (Array.isArray(data.records)) return data.records;
@@ -811,49 +1370,43 @@
         }
 
         function getValue(record, key) {
-            if (record[key] !== undefined && record[key] !== null) {
-                return record[key];
-            }
-
-            if (
-                record.raw_payload &&
-                record.raw_payload[key] !== undefined &&
-                record.raw_payload[key] !== null
-            ) {
+            if (record[key] !== undefined && record[key] !== null) return record[key];
+            if (record.raw_payload && record.raw_payload[key] !== undefined && record.raw_payload[key] !== null) {
                 return record.raw_payload[key];
             }
-
             return "";
         }
 
         function getTitle(record) {
             return getValue(record, "title") ||
                    getValue(record, "name") ||
+                   getValue(record, "headline") ||
                    getValue(record, "summary") ||
+                   getValue(record, "text") ||
                    getValue(record, "description") ||
-                   "(No title available)";
+                   "(Untitled Record)";
         }
 
         function getSummary(record) {
             const title = getTitle(record);
             const summary = getValue(record, "summary") ||
-                            getValue(record, "description");
-
+                            getValue(record, "description") ||
+                            getValue(record, "text") ||
+                            getValue(record, "content");
             return summary && summary !== title ? summary : "";
         }
 
-        function createCell(value) {
+        function createCell(val) {
             const td = document.createElement("td");
-            td.textContent = value === undefined || value === null ||
-                             value === "" ? "—" : String(value);
+            td.textContent = (val === undefined || val === null || val === "") ? "—" : String(val);
             return td;
         }
 
-        function createTagCell(value) {
+        function createTagCell(val) {
             const td = document.createElement("td");
             const tag = document.createElement("span");
             tag.className = "tag";
-            tag.textContent = value || "—";
+            tag.textContent = val || "—";
             td.appendChild(tag);
             return td;
         }
@@ -864,10 +1417,8 @@
             if (records.length === 0) {
                 tableWrap.hidden = true;
                 emptyState.hidden = false;
-                emptyState.querySelector("h3").textContent =
-                    "No records found";
-                emptyState.querySelector("p").textContent =
-                    "Try changing your filters or selecting another dataset.";
+                emptyState.querySelector("h3").textContent = "No records found";
+                emptyState.querySelector("p").textContent = "Try altering your keyword filters or selecting another collection.";
                 return;
             }
 
@@ -886,30 +1437,22 @@
                 if (summaryText) {
                     const summary = document.createElement("div");
                     summary.className = "record-subtitle";
-                    summary.textContent = summaryText.length > 180
-                        ? summaryText.slice(0, 180) + "…"
-                        : summaryText;
+                    summary.textContent = summaryText.length > 200 ? summaryText.slice(0, 200) + "…" : summaryText;
                     titleCell.appendChild(summary);
                 }
 
                 tr.appendChild(titleCell);
-                tr.appendChild(createTagCell(
-                    String(getValue(record, "lang") || "—")
-                ));
-                tr.appendChild(createCell(
-                    getValue(record, "source_name") ||
-                    getValue(record, "source")
-                ));
+                tr.appendChild(createTagCell(String(getValue(record, "lang") || "—")));
+                tr.appendChild(createCell(getValue(record, "source_name") || getValue(record, "source")));
                 tr.appendChild(createCell(getValue(record, "domain")));
 
-                const inspectCell = document.createElement("td");
+                const actionCell = document.createElement("td");
                 const inspectBtn = document.createElement("button");
                 inspectBtn.className = "btn btn-light btn-small";
                 inspectBtn.textContent = "View JSON";
 
                 inspectBtn.addEventListener("click", () => {
-                    const existing = inspectCell.querySelector("pre");
-
+                    const existing = actionCell.querySelector("pre");
                     if (existing) {
                         existing.remove();
                         inspectBtn.textContent = "View JSON";
@@ -918,14 +1461,14 @@
 
                     const pre = document.createElement("pre");
                     pre.textContent = JSON.stringify(record, null, 2);
-                    pre.style.marginTop = "10px";
+                    pre.style.marginTop = "8px";
                     pre.style.minWidth = "260px";
-                    inspectCell.appendChild(pre);
+                    actionCell.appendChild(pre);
                     inspectBtn.textContent = "Hide JSON";
                 });
 
-                inspectCell.appendChild(inspectBtn);
-                tr.appendChild(inspectCell);
+                actionCell.appendChild(inspectBtn);
+                tr.appendChild(actionCell);
 
                 resultsBody.appendChild(tr);
             });
@@ -935,18 +1478,8 @@
         }
 
         function updateStatistics(data, records) {
-            const total =
-                data.total_matching ??
-                data.total_records ??
-                data.total ??
-                data.count ??
-                records.length;
-
-            const returned =
-                data.returned_records ??
-                data.returned_count ??
-                records.length;
-
+            const total = data.total_matching ?? data.total_records ?? records.length;
+            const returned = data.returned_records ?? records.length;
             matchingCount.textContent = Number(total).toLocaleString();
             returnedCount.textContent = Number(returned).toLocaleString();
         }
@@ -958,21 +1491,16 @@
 
             if (keyword) params.set("keyword", keyword);
             if (language) params.set("language", language);
+            if (currentConnectionId) params.set("connection_id", currentConnectionId);
 
-            const size = Number(sampleSizeInput.value);
+            const size = Number(sampleSizeInput.value) || 10;
 
             if (operation === "preview") {
-                params.set("limit", String(
-                    Math.min(Math.max(size || 20, 1), 50)
-                ));
+                params.set("limit", String(Math.min(Math.max(size, 1), 100)));
             } else if (operation === "filter") {
-                params.set("limit", String(
-                    Math.min(Math.max(size || 20, 1), 100)
-                ));
+                params.set("limit", String(Math.min(Math.max(size, 1), 100)));
             } else if (operation === "sample") {
-                params.set("size", String(
-                    Math.min(Math.max(size || 10, 1), 1000)
-                ));
+                params.set("size", String(Math.min(Math.max(size, 1), 1000)));
             }
 
             return params.toString();
@@ -982,12 +1510,7 @@
             clearNotice();
 
             try {
-                const dataset = getSelectedDataset();
-
-                if (!Number.isFinite(Number(sampleSizeInput.value)) ||
-                    Number(sampleSizeInput.value) < 1) {
-                    throw new Error("Sample size must be at least 1.");
-                }
+                const target = getSelectedDataset();
 
                 const endpoint = {
                     preview: "preview/",
@@ -995,133 +1518,75 @@
                     sample: "sample/"
                 }[operation];
 
-                const url = API_BASE +
-                    encodeURIComponent(dataset.database) + "/" +
-                    encodeURIComponent(dataset.collection) + "/" +
-                    endpoint + "?" + buildQuery(operation);
+                const url = `${API_BASE}${encodeURIComponent(target.database)}/${encodeURIComponent(target.collection)}/${endpoint}?${buildQuery(operation)}`;
 
                 setLoading(true, button);
-                document.getElementById("resultDescription").textContent =
-                    "Fetching data from MongoDB...";
-                document.getElementById("operationChip").textContent =
-                    operation.charAt(0).toUpperCase() + operation.slice(1);
+                document.getElementById("resultDescription").textContent = "Fetching documents from MongoDB...";
+                document.getElementById("operationChip").textContent = operation.charAt(0).toUpperCase() + operation.slice(1);
 
                 const data = await fetchJSON(url);
+                latestApiResponse = data;
                 const records = getRecords(data);
 
                 renderRecords(records);
                 updateStatistics(data, records);
 
                 rawResponse.textContent = JSON.stringify(data, null, 2);
-                document.getElementById("resultTime").textContent =
-                    new Date().toLocaleTimeString();
-
+                document.getElementById("resultTime").textContent = new Date().toLocaleTimeString();
                 document.getElementById("resultDescription").textContent =
-                    `Showing ${records.length} returned records from ` +
-                    `${dataset.database}.${dataset.collection}`;
+                    `Showing ${records.length} records from ${target.database}.${target.collection}`;
 
                 lastOperation = operation;
-                showNotice("Operation completed successfully.", "success");
+                showNotice(`Completed ${operation} operation successfully.`, "success");
                 setConnectionStatus(true);
 
-            } catch (error) {
-                showNotice(error.message || "Something went wrong.");
-                document.getElementById("resultDescription").textContent =
-                    "The operation could not be completed.";
+            } catch (err) {
+                showNotice(err.message || "Operation failed.");
+                document.getElementById("resultDescription").textContent = "The operation could not be completed.";
             } finally {
                 setLoading(false);
             }
         }
 
-        async function loadDatasets() {
-            clearNotice();
-            datasetSelect.innerHTML =
-                '<option value="">Loading datasets...</option>';
-
-            try {
-                const data = await fetchJSON(API_BASE);
-                const datasets = Array.isArray(data.datasets)
-                    ? data.datasets
-                    : [];
-
-                datasetSelect.replaceChildren();
-
-                if (datasets.length === 0) {
-                    datasetSelect.add(
-                        new Option("No datasets found", "")
-                    );
-                    datasetCount.textContent = "0";
-                    setConnectionStatus(true);
-                    showNotice(
-                        "The API responded, but no datasets were returned."
-                    );
-                    return;
-                }
-
-                datasets.forEach(item => {
-                    const database =
-                        item.database || item.database_name || "";
-                    const collection =
-                        item.collection || item.collection_name || "";
-
-                    if (!database || !collection) return;
-
-                    const option = new Option(
-                        `${database} / ${collection}`,
-                        `${database}::${collection}`
-                    );
-
-                    datasetSelect.add(option);
-                });
-
-                datasetCount.textContent =
-                    datasetSelect.options.length.toLocaleString();
-
-                setConnectionStatus(true);
-
-                if (datasetSelect.options.length > 0) {
-                    showNotice(
-                        "Datasets loaded successfully. Select one to begin.",
-                        "success"
-                    );
-                } else {
-                    showNotice(
-                        "The API response did not contain recognizable dataset names."
-                    );
-                }
-
-            } catch (error) {
-                datasetSelect.replaceChildren(
-                    new Option("Unable to load datasets", "")
-                );
-                datasetCount.textContent = "—";
-                setConnectionStatus(false);
-                showNotice(
-                    "Could not load datasets: " + error.message
-                );
+        // Export as JSON Handler
+        exportJsonBtn.addEventListener("click", () => {
+            if (!latestApiResponse) {
+                showNotice("No records to export yet. Run an operation first.");
+                return;
             }
-        }
 
-        previewBtn.addEventListener("click", () =>
-            runOperation("preview", previewBtn)
-        );
+            const records = getRecords(latestApiResponse);
+            if (records.length === 0) {
+                showNotice("Current results set has 0 records.");
+                return;
+            }
 
-        filterBtn.addEventListener("click", () =>
-            runOperation("filter", filterBtn)
-        );
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(records, null, 2));
+            const downloadAnchor = document.createElement("a");
+            downloadAnchor.setAttribute("href", dataStr);
+            const target = getSelectedDataset();
+            downloadAnchor.setAttribute("download", `${target.database}_${target.collection}_export.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
 
-        sampleBtn.addEventListener("click", () =>
-            runOperation("sample", sampleBtn)
-        );
+            showNotice(`Exported ${records.length} records to JSON file.`, "success");
+        });
+
+        // Event Listeners
+        previewBtn.addEventListener("click", () => runOperation("preview", previewBtn));
+        filterBtn.addEventListener("click", () => runOperation("filter", filterBtn));
+        sampleBtn.addEventListener("click", () => runOperation("sample", sampleBtn));
 
         resetBtn.addEventListener("click", () => {
             keywordInput.value = "";
             languageSelect.value = "";
             sampleSizeInput.value = "10";
             clearNotice();
-            showNotice("Filters have been reset.", "success");
+            showNotice("Filters reset.", "success");
         });
 
+        // Initialize on load
         loadDatasets();
     </script>
 </body>
