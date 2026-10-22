@@ -1,7 +1,10 @@
 import json
+import os
 import pytest
 from django.test import Client
-from database.mongodb import get_mongo_client
+from dotenv import load_dotenv
+
+load_dotenv(".env")
 
 
 @pytest.fixture
@@ -9,67 +12,36 @@ def client():
     return Client()
 
 
+@pytest.fixture
+def mongo_uri():
+    uri = os.getenv("MONGODB_URI")
+    if not uri:
+        pytest.skip("MONGODB_URI not found for testing")
+    return uri
+
+
 def test_dashboard_page(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert b"NLP Intelligence Workspace" in response.content
-    assert b"MongoDB Connection Link / URI" in response.content
+    assert b"MongoDB Link Connector" in response.content
+    assert b"MongoDB Connection URL / Link" in response.content
 
 
-def test_mongodb_connection_status(client):
-    response = client.get("/api/datasets/status/")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert data["connected"] is True
+def test_unconnected_state(client):
+    # Without a connection_id, status reports not connected
+    status_res = client.get("/api/datasets/status/")
+    assert status_res.status_code == 200
+    assert status_res.json()["connected"] is False
 
+    # Datasets returns empty list
+    list_res = client.get("/api/datasets/")
+    assert list_res.status_code == 200
+    assert list_res.json()["count"] == 0
 
-def test_dataset_list(client):
-    response = client.get("/api/datasets/")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert "datasets" in data
-    assert "databases" in data
-    assert len(data["datasets"]) > 0
-
-
-def test_collection_preview(client):
-    # Tests preview on Events/news_events
-    response = client.get("/api/datasets/Events/news_events/preview/?limit=5")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert data["database"] == "Events"
-    assert data["collection"] == "news_events"
-    assert len(data["preview"]) <= 5
-    assert "fields" in data
-
-
-def test_collection_schema(client):
-    response = client.get("/api/datasets/Events/news_events/schema/")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert "fields" in data
-    assert "total_records" in data
-
-
-def test_collection_filter(client):
-    response = client.get("/api/datasets/Events/news_events/filter/?limit=5")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert "preview" in data
-
-
-def test_collection_sample(client):
-    response = client.get("/api/datasets/Events/news_events/sample/?size=3")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert "preview" in data
-    assert len(data["preview"]) <= 3
+    # Operation without connection_id fails with 400
+    prev_res = client.get("/api/datasets/Events/news_events/preview/")
+    assert prev_res.status_code == 400
+    assert "Please connect via a MongoDB URL link first" in prev_res.json()["error"]
 
 
 def test_connect_invalid_uri(client):
@@ -83,35 +55,58 @@ def test_connect_invalid_uri(client):
     assert data["success"] is False
 
 
-def test_connect_and_disconnect_dynamic_client(client):
-    import os
-    valid_uri = os.getenv("MONGODB_URI")
-    if not valid_uri:
-        pytest.skip("MONGODB_URI not set")
-
-    # Connect with link
-    response = client.post(
+def test_url_link_lifecycle_and_exploration(client, mongo_uri):
+    # 1. Connect using full URL link pointing to droneDB/drones
+    full_link = mongo_uri.rstrip("/") + "/droneDB/drones"
+    connect_res = client.post(
         "/api/datasets/connect/",
-        data=json.dumps({"uri": valid_uri}),
+        data=json.dumps({"uri": full_link}),
         content_type="application/json",
     )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert "connection_id" in data
-    connection_id = data["connection_id"]
+    assert connect_res.status_code == 200
+    conn_data = connect_res.json()
+    assert conn_data["success"] is True
+    assert conn_data["default_database"] == "droneDB"
+    assert conn_data["default_collection"] == "drones"
+    cid = conn_data["connection_id"]
 
-    # Preview with connection_id
-    preview_res = client.get(
-        f"/api/datasets/Events/news_events/preview/?limit=2&connection_id={connection_id}"
-    )
+    # 2. Check connection status for this connection_id
+    status_res = client.get(f"/api/datasets/status/?connection_id={cid}")
+    assert status_res.status_code == 200
+    assert status_res.json()["connected"] is True
+
+    # 3. List datasets for this connection_id
+    datasets_res = client.get(f"/api/datasets/?connection_id={cid}")
+    assert datasets_res.status_code == 200
+    assert datasets_res.json()["count"] > 0
+
+    # 4. Preview collection
+    preview_res = client.get(f"/api/datasets/droneDB/drones/preview/?limit=3&connection_id={cid}")
     assert preview_res.status_code == 200
-    assert preview_res.json()["success"] is True
+    prev_data = preview_res.json()
+    assert prev_data["success"] is True
+    assert prev_data["returned_records"] <= 3
+    assert len(prev_data["fields"]) > 0
 
-    # Disconnect
+    # 5. Schema inspection
+    schema_res = client.get(f"/api/datasets/droneDB/drones/schema/?connection_id={cid}")
+    assert schema_res.status_code == 200
+    assert schema_res.json()["total_records"] > 0
+
+    # 6. Filter
+    filter_res = client.get(f"/api/datasets/droneDB/drones/filter/?limit=2&connection_id={cid}")
+    assert filter_res.status_code == 200
+    assert filter_res.json()["success"] is True
+
+    # 7. Sample ($sample)
+    sample_res = client.get(f"/api/datasets/droneDB/drones/sample/?size=2&connection_id={cid}")
+    assert sample_res.status_code == 200
+    assert sample_res.json()["returned_records"] <= 2
+
+    # 8. Disconnect
     disc_res = client.post(
         "/api/datasets/disconnect/",
-        data=json.dumps({"connection_id": connection_id}),
+        data=json.dumps({"connection_id": cid}),
         content_type="application/json",
     )
     assert disc_res.status_code == 200

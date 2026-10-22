@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NLP Intelligence Workspace · MongoDB Connectors & Dataset Explorer</title>
+    <title>MongoDB Link Connector & Dataset Explorer</title>
 
     <style>
         :root {
@@ -108,7 +108,7 @@
 
         /* Hero */
         .hero {
-            padding: 28px 32px;
+            padding: 26px 30px;
             margin-bottom: 24px;
             border: 1px solid #e2e8f0;
             border-radius: var(--radius);
@@ -151,8 +151,8 @@
             gap: 8px;
             padding: 8px 14px;
             border-radius: 30px;
-            background: var(--success-bg);
-            color: #166534;
+            background: #f1f5f9;
+            color: #475569;
             font-size: 12.5px;
             font-weight: 600;
             white-space: nowrap;
@@ -162,6 +162,15 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
+            background: #94a3b8;
+        }
+
+        .status-pill.online {
+            background: var(--success-bg);
+            color: #166534;
+        }
+
+        .status-pill.online .status-dot {
             background: var(--success);
             box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
         }
@@ -173,25 +182,15 @@
 
         .status-pill.offline .status-dot {
             background: var(--danger);
-            box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
         }
 
-        .status-pill.connecting {
-            background: var(--warning-bg);
-            color: #92400e;
-        }
-
-        .status-pill.connecting .status-dot {
-            background: var(--warning);
-        }
-
-        /* Connector Panel */
+        /* Connector Card */
         .connector-card {
             background: var(--surface);
-            border: 1px solid var(--border);
+            border: 2px solid #e0e7ff;
             border-radius: var(--radius);
             margin-bottom: 24px;
-            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.06);
             overflow: hidden;
         }
 
@@ -213,80 +212,65 @@
         }
 
         .connector-icon {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 10px;
             background: var(--primary-light);
             color: var(--primary);
             display: grid;
             place-items: center;
-            font-size: 18px;
+            font-size: 19px;
         }
 
         .connector-title h3 {
             margin: 0;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 700;
         }
 
         .connector-title p {
             margin: 2px 0 0;
             color: var(--muted);
-            font-size: 12px;
+            font-size: 12.5px;
             word-break: break-all;
         }
 
-        .connector-badges {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11.5px;
-            font-weight: 600;
-        }
-
-        .badge-primary {
-            background: var(--primary-light);
-            color: var(--primary-dark);
-        }
-
-        .badge-neutral {
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        .badge-success {
-            background: var(--success-bg);
-            color: #15803d;
-        }
-
         .connector-body {
-            padding: 22px 24px;
+            padding: 24px;
             background: #fafbfc;
         }
 
         .connector-form-grid {
             display: grid;
-            grid-template-columns: 2.5fr 1fr 1fr auto;
+            grid-template-columns: 2.8fr 1.1fr 1.1fr auto;
             gap: 12px;
             align-items: end;
         }
 
         .connector-hint {
-            margin-top: 10px;
+            margin-top: 12px;
             color: var(--muted);
             font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .connector-active-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding: 16px 20px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+        }
+
+        .connector-active-info {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         /* Stats */
@@ -418,6 +402,13 @@
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
         }
 
+        .field input:disabled,
+        .field select:disabled {
+            background: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
         /* Schema Field Badges */
         .collection-meta-bar {
             margin-top: 18px;
@@ -463,6 +454,26 @@
             background: #cbd5e1;
         }
 
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: var(--success-bg);
+            color: #15803d;
+        }
+
+        .badge-neutral {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
         .actions {
             display: flex;
             gap: 10px;
@@ -489,7 +500,7 @@
         }
 
         .btn:disabled {
-            opacity: .55;
+            opacity: .5;
             cursor: not-allowed;
             transform: none;
         }
@@ -526,6 +537,7 @@
         .btn-danger-light {
             background: var(--danger-bg);
             color: var(--danger);
+            border: 1px solid #fecaca;
         }
 
         .btn-small {
@@ -549,7 +561,6 @@
             font-weight: 500;
         }
 
-        /* Table */
         .table-wrap {
             overflow-x: auto;
         }
@@ -716,10 +727,6 @@
                 padding: 16px 4%;
             }
 
-            .hero {
-                padding: 20px;
-            }
-
             .stats,
             .form-grid,
             .connector-form-grid {
@@ -739,11 +746,11 @@
             <div class="brand-icon">N</div>
             <div>
                 <h2>NLP Intelligence Workspace</h2>
-                <p>MongoDB Connectors & Live Dataset Exploration Platform</p>
+                <p>MongoDB Link Connector & Dataset Explorer</p>
             </div>
         </div>
         <div class="topbar-actions">
-            <span class="topbar-tag">MongoDB Atlas + Django Backend</span>
+            <span class="topbar-tag">MongoDB Link Driven · Zero Hardcoded DB</span>
         </div>
     </header>
 
@@ -751,52 +758,61 @@
         <!-- Hero Section -->
         <section class="hero">
             <div>
-                <div class="eyebrow">Intelligence Data Connectors</div>
+                <div class="eyebrow">Direct Link Connectors</div>
                 <h1>Choose any MongoDB collection directly.</h1>
                 <p>
-                    Connect directly via a MongoDB link/URI, discover accessible collections, 
-                    inspect schemas, filter records, and extract random samples for NLP pipelines.
+                    Connect strictly using any MongoDB connection URL link (Atlas or standalone).
+                    Discover collections, inspect schema fields, search text, and generate random samples.
                 </p>
             </div>
 
             <div id="connectionStatus" class="status-pill">
                 <span class="status-dot"></span>
-                <span id="connectionText">Checking connection...</span>
+                <span id="connectionText">No MongoDB URL Connected</span>
             </div>
         </section>
 
         <!-- Notification Banner -->
         <div id="notice" class="notice" role="status" aria-live="polite"></div>
 
-        <!-- MongoDB Connector Manager -->
+        <!-- MongoDB URL Connector (Primary Entry Point) -->
         <section class="connector-card">
             <div class="connector-header">
                 <div class="connector-info">
-                    <div class="connector-icon">⛃</div>
+                    <div class="connector-icon">🔗</div>
                     <div class="connector-title">
-                        <h3 id="activeConnectorName">Default MongoDB Atlas Cluster</h3>
-                        <p id="activeConnectorDesc">Connected via environment configuration (.env)</p>
+                        <h3 id="connectorCardHeading">MongoDB URL Connector</h3>
+                        <p id="connectorCardDesc">Paste a MongoDB connection URL to connect and explore collections.</p>
                     </div>
                 </div>
 
-                <div class="connector-badges">
-                    <span id="connectorBadge" class="badge badge-primary">Default Connector</span>
-                    <button id="toggleConnectorFormBtn" class="btn btn-secondary btn-small">
-                        + Connect via MongoDB Link
-                    </button>
-                    <button id="resetDefaultConnectorBtn" class="btn btn-light btn-small" style="display: none;">
-                        ↺ Switch to Default Cluster
+                <div id="connectorHeaderActions">
+                    <button id="disconnectBtn" class="btn btn-danger-light btn-small" style="display: none;">
+                        ✕ Disconnect / Enter New URL
                     </button>
                 </div>
             </div>
 
-            <!-- Dynamic Connector & Direct Collection Form -->
-            <div id="connectorForm" class="connector-body" style="display: none;">
+            <!-- Active Connection Banner (Shown when connected) -->
+            <div id="activeConnectionBanner" class="connector-body" style="display: none; background: #ffffff;">
+                <div class="connector-active-bar">
+                    <div class="connector-active-info">
+                        <span class="badge badge-success">✓ Connected via URL Link</span>
+                        <code id="activeMaskedUri" style="font-size: 13px; color: #1e293b; font-weight: 600;">mongodb+srv://...</code>
+                    </div>
+                    <div style="font-size: 12px; color: #64748b;">
+                        Active Session ID: <span id="activeConnectionId" style="font-family: monospace;">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connection Form (Shown when not connected) -->
+            <div id="connectorForm" class="connector-body">
                 <div class="connector-form-grid">
                     <div class="field">
-                        <label for="mongoUriInput">MongoDB Connection Link / URI</label>
+                        <label for="mongoUriInput">MongoDB Connection URL / Link</label>
                         <input id="mongoUriInput" type="text"
-                               placeholder="mongodb+srv://user:password@cluster0.xxx.mongodb.net/database/collection">
+                               placeholder="mongodb+srv://username:password@cluster0.xxx.mongodb.net/database_name/collection_name">
                     </div>
 
                     <div class="field">
@@ -809,18 +825,15 @@
                         <input id="directColInput" type="text" placeholder="e.g. news_events">
                     </div>
 
-                    <div class="field" style="display: flex; flex-direction: row; gap: 8px;">
+                    <div class="field">
                         <button id="connectUriBtn" class="btn btn-primary" style="height: 42px;">
                             Connect & Explore
-                        </button>
-                        <button id="closeConnectorFormBtn" class="btn btn-light" style="height: 42px;">
-                            Cancel
                         </button>
                     </div>
                 </div>
 
                 <div class="connector-hint">
-                    <span>💡 <strong>Tip:</strong> You can paste a cluster URI or a full collection link like <code>mongodb+srv://.../Events/news_events</code> to immediately connect and open that dataset.</span>
+                    💡 <strong>Direct Jump:</strong> If you paste a full collection URL like <code>mongodb+srv://.../Events/news_events</code> or specify a database & collection, the workspace will connect and jump directly into exploring that collection.
                 </div>
             </div>
         </section>
@@ -829,11 +842,11 @@
         <section class="stats">
             <article class="stat-card">
                 <div class="stat-heading">
-                    <span class="stat-label">Available Datasets</span>
+                    <span class="stat-label">Available Collections</span>
                     <span class="stat-icon">▦</span>
                 </div>
                 <div id="datasetCount" class="stat-value">—</div>
-                <div class="stat-note">Discovered in active cluster</div>
+                <div class="stat-note">From connected URL</div>
             </article>
 
             <article class="stat-card">
@@ -842,7 +855,7 @@
                     <span class="stat-icon">🗄</span>
                 </div>
                 <div id="databaseCount" class="stat-value">—</div>
-                <div class="stat-note">Accessible user databases</div>
+                <div class="stat-note">Discovered in cluster</div>
             </article>
 
             <article class="stat-card">
@@ -868,8 +881,8 @@
         <section class="panel">
             <div class="panel-header">
                 <div>
-                    <h2>Dataset & Collection Explorer</h2>
-                    <p>Select any collection from the connector to inspect its records, schema, and text features.</p>
+                    <h2>Collection Explorer</h2>
+                    <p>Select any collection from the connected MongoDB URL to inspect records, schemas, and text features.</p>
                 </div>
                 <span id="activeSelectionTag" class="tag">No Collection Selected</span>
             </div>
@@ -878,20 +891,20 @@
                 <div class="form-grid">
                     <div class="field">
                         <label for="datasetSelect">Dataset / Collection</label>
-                        <select id="datasetSelect">
-                            <option value="">Loading collections...</option>
+                        <select id="datasetSelect" disabled>
+                            <option value="">Connect a MongoDB URL link above to choose a collection</option>
                         </select>
                     </div>
 
                     <div class="field">
                         <label for="keyword">Keyword search</label>
                         <input id="keyword" type="text"
-                               placeholder="e.g. military, technology, ai">
+                               placeholder="e.g. military, technology, ai" disabled>
                     </div>
 
                     <div class="field">
                         <label for="language">Language</label>
-                        <select id="language">
+                        <select id="language" disabled>
                             <option value="">All languages</option>
                             <option value="en">English (en)</option>
                             <option value="hi">Hindi (hi)</option>
@@ -903,33 +916,33 @@
                     <div class="field">
                         <label for="sampleSize">Sample / Limit size</label>
                         <input id="sampleSize" type="number"
-                               value="10" min="1" max="1000">
+                               value="10" min="1" max="1000" disabled>
                     </div>
                 </div>
 
                 <!-- Collection Meta Bar (Discovered Schema Fields) -->
                 <div id="collectionMetaBar" class="collection-meta-bar" style="display: none;">
                     <div class="schema-fields-wrap">
-                        <span class="schema-label">Detected Fields:</span>
+                        <span class="schema-label">Detected Schema Fields:</span>
                         <div id="schemaChipsList" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
                     </div>
                     <div id="collectionDocCount" class="badge badge-neutral">Total Documents: —</div>
                 </div>
 
                 <div class="actions">
-                    <button class="btn btn-primary" id="previewBtn">
+                    <button class="btn btn-primary" id="previewBtn" disabled>
                         Preview Records
                     </button>
-                    <button class="btn btn-secondary" id="filterBtn">
+                    <button class="btn btn-secondary" id="filterBtn" disabled>
                         Filter Records
                     </button>
-                    <button class="btn btn-secondary" id="sampleBtn">
+                    <button class="btn btn-secondary" id="sampleBtn" disabled>
                         Run Random Sample ($sample)
                     </button>
-                    <button class="btn btn-light" id="exportJsonBtn">
+                    <button class="btn btn-light" id="exportJsonBtn" disabled>
                         Export as JSON
                     </button>
-                    <button class="btn btn-light" id="resetBtn">
+                    <button class="btn btn-light" id="resetBtn" disabled>
                         Reset Filters
                     </button>
                 </div>
@@ -942,7 +955,7 @@
                 <div>
                     <h2>Results & Data Explorer</h2>
                     <p id="resultDescription">
-                        Choose an operation above to inspect collection documents.
+                        Connect a MongoDB URL link above and select a collection to inspect records.
                     </p>
                 </div>
 
@@ -953,10 +966,10 @@
             </div>
 
             <div id="emptyState" class="empty-state">
-                <div class="empty-icon">⌕</div>
-                <h3>Your workspace is ready</h3>
-                <p>
-                    Select any MongoDB dataset from above and click <strong>Preview Records</strong> or <strong>Run Random Sample</strong> to explore.
+                <div class="empty-icon">🔗</div>
+                <h3 id="emptyHeading">No MongoDB connection active</h3>
+                <p id="emptyText">
+                    Paste your MongoDB connection link in the connector above and click <strong>Connect & Explore</strong> to begin.
                 </p>
             </div>
 
@@ -983,14 +996,14 @@
         </section>
 
         <footer class="footer">
-            NLP Intelligence Workspace · Django 6 Backend · MongoDB Atlas Dynamic Connectors
+            NLP Intelligence Workspace · Dynamic MongoDB Link Connectors · Zero Default Databases
         </footer>
     </main>
 
     <script>
         const API_BASE = "/api/datasets/";
 
-        // State
+        // State: solely driven by connection_id
         let currentConnectionId = null;
         let activeDatasets = [];
         let latestApiResponse = null;
@@ -1002,13 +1015,13 @@
         const notice = document.getElementById("notice");
 
         // Connector Elements
-        const activeConnectorName = document.getElementById("activeConnectorName");
-        const activeConnectorDesc = document.getElementById("activeConnectorDesc");
-        const connectorBadge = document.getElementById("connectorBadge");
-        const toggleConnectorFormBtn = document.getElementById("toggleConnectorFormBtn");
-        const resetDefaultConnectorBtn = document.getElementById("resetDefaultConnectorBtn");
+        const connectorCardHeading = document.getElementById("connectorCardHeading");
+        const connectorCardDesc = document.getElementById("connectorCardDesc");
         const connectorForm = document.getElementById("connectorForm");
-        const closeConnectorFormBtn = document.getElementById("closeConnectorFormBtn");
+        const activeConnectionBanner = document.getElementById("activeConnectionBanner");
+        const activeMaskedUri = document.getElementById("activeMaskedUri");
+        const activeConnectionId = document.getElementById("activeConnectionId");
+        const disconnectBtn = document.getElementById("disconnectBtn");
         const mongoUriInput = document.getElementById("mongoUriInput");
         const directDbInput = document.getElementById("directDbInput");
         const directColInput = document.getElementById("directColInput");
@@ -1035,6 +1048,8 @@
         const resultsBody = document.getElementById("resultsBody");
         const tableWrap = document.getElementById("tableWrap");
         const emptyState = document.getElementById("emptyState");
+        const emptyHeading = document.getElementById("emptyHeading");
+        const emptyText = document.getElementById("emptyText");
         const rawResponse = document.getElementById("rawResponse");
         const datasetCount = document.getElementById("datasetCount");
         const databaseCount = document.getElementById("databaseCount");
@@ -1053,9 +1068,17 @@
             notice.className = "notice";
         }
 
-        function setConnectionStatus(online, message = null) {
-            connectionStatus.classList.toggle("offline", !online);
-            connectionText.textContent = message || (online ? "Cluster connected" : "Cluster offline");
+        function setConnectionStatus(connected, message = null) {
+            connectionStatus.classList.toggle("online", connected);
+            connectionStatus.classList.toggle("offline", !connected && currentConnectionId !== null);
+            connectionText.textContent = message || (connected ? "Connected to MongoDB URL" : "No MongoDB URL Connected");
+        }
+
+        function setFormDisabled(disabled) {
+            [datasetSelect, keywordInput, languageSelect, sampleSizeInput, previewBtn, filterBtn, sampleBtn, exportJsonBtn, resetBtn]
+                .forEach(el => {
+                    if (el) el.disabled = disabled;
+                });
         }
 
         function setLoading(loading, activeButton = null) {
@@ -1066,7 +1089,7 @@
 
             if (loading && activeButton) {
                 activeButton.dataset.originalText = activeButton.textContent;
-                activeButton.textContent = "Processing...";
+                activeButton.textContent = "Connecting...";
             } else {
                 [previewBtn, filterBtn, sampleBtn, connectUriBtn].forEach(button => {
                     if (button && button.dataset.originalText) {
@@ -1093,7 +1116,7 @@
             try {
                 data = JSON.parse(text);
             } catch {
-                throw new Error(`The server returned non-JSON data (HTTP ${response.status}).`);
+                throw new Error(`The server returned a non-JSON response (HTTP ${response.status}).`);
             }
 
             if (!response.ok) {
@@ -1107,10 +1130,9 @@
             return data;
         }
 
-        // Connector Parsing Helper
+        // Parse URI path for database & collection
         function parseMongoUri(uri) {
             try {
-                // Look for path after host/port
                 const withoutProtocol = uri.replace(/^mongodb(\+srv)?:\/\//, "");
                 const slashIndex = withoutProtocol.indexOf("/");
                 if (slashIndex !== -1) {
@@ -1139,13 +1161,13 @@
             }
         });
 
-        // Load Datasets for Current Connection
-        async function loadDatasets(connectionId = currentConnectionId, preferredSelection = null) {
+        // Load Datasets for the connected URL
+        async function loadDatasets(connectionId, preferredSelection = null) {
             clearNotice();
             datasetSelect.innerHTML = '<option value="">Loading collections...</option>';
 
             try {
-                const url = API_BASE + (connectionId ? `?connection_id=${encodeURIComponent(connectionId)}` : "");
+                const url = `${API_BASE}?connection_id=${encodeURIComponent(connectionId)}`;
                 const data = await fetchJSON(url);
                 activeDatasets = Array.isArray(data.datasets) ? data.datasets : [];
                 const databases = Array.isArray(data.databases) ? data.databases : [];
@@ -1153,11 +1175,10 @@
                 datasetSelect.replaceChildren();
 
                 if (activeDatasets.length === 0) {
-                    datasetSelect.add(new Option("No collections found in cluster", ""));
+                    datasetSelect.add(new Option("No collections found in this cluster", ""));
                     datasetCount.textContent = "0";
                     databaseCount.textContent = databases.length.toString();
-                    setConnectionStatus(true);
-                    showNotice("Connected, but no user collections were found.", "warning");
+                    showNotice("Connected to URL, but no user collections were found.", "warning");
                     return;
                 }
 
@@ -1197,21 +1218,27 @@
 
                 datasetCount.textContent = activeDatasets.length.toLocaleString();
                 databaseCount.textContent = Object.keys(dbGroups).length.toLocaleString();
-                setConnectionStatus(true);
+                setFormDisabled(false);
                 updateActiveSelectionTag();
                 inspectCollectionSchema();
+
+                emptyHeading.textContent = "Collection ready for exploration";
+                emptyText.textContent = "Click Preview Records or Run Random Sample to inspect documents.";
 
             } catch (error) {
                 datasetSelect.replaceChildren(new Option("Unable to load collections", ""));
                 datasetCount.textContent = "—";
                 databaseCount.textContent = "—";
-                setConnectionStatus(false, "Connection error");
-                showNotice("Could not load datasets: " + error.message);
+                showNotice("Could not load collections: " + error.message);
             }
         }
 
         // Get currently selected database & collection
         function getSelectedDataset() {
+            if (!currentConnectionId) {
+                throw new Error("No active MongoDB connection. Please connect a MongoDB URL link above.");
+            }
+
             const val = datasetSelect.value;
             if (!val) throw new Error("Please select a collection first.");
             const sep = val.indexOf("::");
@@ -1238,10 +1265,11 @@
 
         // Inspect Collection Schema & Total Documents
         async function inspectCollectionSchema() {
+            if (!currentConnectionId) return;
+
             try {
                 const target = getSelectedDataset();
-                const url = `${API_BASE}${encodeURIComponent(target.database)}/${encodeURIComponent(target.collection)}/schema/` +
-                    (currentConnectionId ? `?connection_id=${encodeURIComponent(currentConnectionId)}` : "");
+                const url = `${API_BASE}${encodeURIComponent(target.database)}/${encodeURIComponent(target.collection)}/schema/?connection_id=${encodeURIComponent(currentConnectionId)}`;
 
                 const data = await fetchJSON(url);
                 collectionMetaBar.style.display = "flex";
@@ -1260,7 +1288,7 @@
                         chip.title = `Field '${f}' in this collection`;
                         chip.addEventListener("click", () => {
                             keywordInput.value = f;
-                            showNotice(`Filtered keyword set to '${f}'`, "success");
+                            showNotice(`Filter keyword set to field '${f}'`, "success");
                         });
                         schemaChipsList.appendChild(chip);
                     });
@@ -1270,11 +1298,11 @@
             }
         }
 
-        // Connect via MongoDB Link Button Handler
+        // Connect via MongoDB URL Link Button Handler
         connectUriBtn.addEventListener("click", async () => {
             const uri = mongoUriInput.value.trim();
             if (!uri) {
-                showNotice("Please enter a valid MongoDB connection URI.");
+                showNotice("Please enter a MongoDB connection URL link.");
                 return;
             }
 
@@ -1294,14 +1322,18 @@
                 });
 
                 currentConnectionId = res.connection_id;
-                activeConnectorName.textContent = "Custom MongoDB Link";
-                activeConnectorDesc.textContent = res.masked_uri || uri;
-                connectorBadge.textContent = "Custom Link Connector";
-                connectorBadge.className = "badge badge-success";
-                resetDefaultConnectorBtn.style.display = "inline-flex";
-                connectorForm.style.display = "none";
+                setConnectionStatus(true, "Connected to MongoDB URL");
 
-                showNotice("Connected successfully to MongoDB link!", "success");
+                // Switch UI to connected state
+                connectorCardHeading.textContent = "Connected MongoDB URL";
+                connectorCardDesc.textContent = "Active connection established via provided URL link.";
+                activeMaskedUri.textContent = res.masked_uri || uri;
+                activeConnectionId.textContent = res.connection_id.slice(0, 8) + "…";
+                connectorForm.style.display = "none";
+                activeConnectionBanner.style.display = "block";
+                disconnectBtn.style.display = "inline-flex";
+
+                showNotice("Connected to MongoDB successfully via URL link!", "success");
 
                 const preferred = (res.default_database && res.default_collection)
                     ? { database: res.default_database, collection: res.default_collection }
@@ -1310,19 +1342,20 @@
                 await loadDatasets(currentConnectionId, preferred);
 
                 if (preferred) {
-                    // Auto run preview if user specified a collection!
+                    // Automatically run preview if a collection was given in the link!
                     runOperation("preview", previewBtn);
                 }
 
             } catch (err) {
-                showNotice("Connection failed: " + err.message);
+                setConnectionStatus(false, "Connection failed");
+                showNotice("Failed to connect: " + err.message);
             } finally {
                 setLoading(false);
             }
         });
 
-        // Switch to Default Cluster Handler
-        resetDefaultConnectorBtn.addEventListener("click", async () => {
+        // Disconnect Button Handler
+        disconnectBtn.addEventListener("click", async () => {
             if (currentConnectionId) {
                 try {
                     await fetchJSON(API_BASE + "disconnect/", {
@@ -1330,34 +1363,41 @@
                         body: JSON.stringify({ connection_id: currentConnectionId })
                     });
                 } catch {
-                    // Clean up regardless
+                    // Clean up UI regardless
                 }
             }
 
             currentConnectionId = null;
-            activeConnectorName.textContent = "Default MongoDB Atlas Cluster";
-            activeConnectorDesc.textContent = "Connected via environment configuration (.env)";
-            connectorBadge.textContent = "Default Connector";
-            connectorBadge.className = "badge badge-primary";
-            resetDefaultConnectorBtn.style.display = "none";
-            mongoUriInput.value = "";
-            directDbInput.value = "";
-            directColInput.value = "";
+            activeDatasets = [];
+            latestApiResponse = null;
 
-            showNotice("Switched back to Default MongoDB Atlas Cluster.", "success");
-            await loadDatasets(null);
-        });
+            setConnectionStatus(false, "No MongoDB URL Connected");
+            connectorCardHeading.textContent = "MongoDB URL Connector";
+            connectorCardDesc.textContent = "Paste a MongoDB connection URL to connect and explore collections.";
+            connectorForm.style.display = "block";
+            activeConnectionBanner.style.display = "none";
+            disconnectBtn.style.display = "none";
 
-        toggleConnectorFormBtn.addEventListener("click", () => {
-            const isVisible = connectorForm.style.display === "block";
-            connectorForm.style.display = isVisible ? "none" : "block";
-            if (!isVisible) {
-                mongoUriInput.focus();
-            }
-        });
+            datasetSelect.innerHTML = '<option value="">Connect a MongoDB URL link above to choose a collection</option>';
+            setFormDisabled(true);
+            updateActiveSelectionTag();
+            collectionMetaBar.style.display = "none";
 
-        closeConnectorFormBtn.addEventListener("click", () => {
-            connectorForm.style.display = "none";
+            datasetCount.textContent = "—";
+            databaseCount.textContent = "—";
+            matchingCount.textContent = "—";
+            returnedCount.textContent = "—";
+
+            tableWrap.hidden = true;
+            emptyState.hidden = false;
+            emptyHeading.textContent = "No MongoDB connection active";
+            emptyText.textContent = "Paste your MongoDB connection link in the connector above and click Connect & Explore to begin.";
+            rawResponse.textContent = "No API response yet.";
+            document.getElementById("operationChip").textContent = "No operation";
+            document.getElementById("resultTime").textContent = "Not run yet";
+            document.getElementById("resultDescription").textContent = "Connect a MongoDB URL link above and select a collection to inspect records.";
+
+            showNotice("Disconnected from MongoDB URL.", "success");
         });
 
         // Document helpers
@@ -1417,8 +1457,8 @@
             if (records.length === 0) {
                 tableWrap.hidden = true;
                 emptyState.hidden = false;
-                emptyState.querySelector("h3").textContent = "No records found";
-                emptyState.querySelector("p").textContent = "Try altering your keyword filters or selecting another collection.";
+                emptyHeading.textContent = "No records found";
+                emptyText.textContent = "Try altering your keyword filters or selecting another collection.";
                 return;
             }
 
@@ -1538,7 +1578,6 @@
 
                 lastOperation = operation;
                 showNotice(`Completed ${operation} operation successfully.`, "success");
-                setConnectionStatus(true);
 
             } catch (err) {
                 showNotice(err.message || "Operation failed.");
@@ -1585,9 +1624,6 @@
             clearNotice();
             showNotice("Filters reset.", "success");
         });
-
-        // Initialize on load
-        loadDatasets();
     </script>
 </body>
 </html>

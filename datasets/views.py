@@ -24,7 +24,7 @@ SYSTEM_DATABASES = {"admin", "local", "config"}
 
 
 # --------------------------------------------------------------------------
-# Helpers (shared by views)
+# Helpers
 # --------------------------------------------------------------------------
 
 def _error(message, status=400):
@@ -32,8 +32,20 @@ def _error(message, status=400):
     return JsonResponse({"success": False, "error": message}, status=status)
 
 
-def _validate_target(database_name, collection_name, connection_id=None):
-    """Return an error response if the DB or collection does not exist, else None."""
+def _get_connection_id(request):
+    """Extract connection_id from query parameters or headers."""
+    cid = request.GET.get("connection_id") or request.headers.get("X-Connection-ID")
+    if cid and isinstance(cid, str):
+        cid = cid.strip()
+        return cid if cid else None
+    return None
+
+
+def _validate_target(database_name, collection_name, connection_id):
+    """Validate that the connection, database, and collection exist."""
+    if not connection_id:
+        return _error("Please connect via a MongoDB URL link first.", 400)
+
     try:
         available_dbs = list_databases(connection_id)
         if available_dbs and database_name not in available_dbs:
@@ -45,6 +57,8 @@ def _validate_target(database_name, collection_name, connection_id=None):
                 f"Collection '{collection_name}' not found in database '{database_name}'.",
                 404,
             )
+    except ValueError as exc:
+        return _error(str(exc), 400)
     except Exception as exc:
         return _error(f"Unable to access database: {exc}", 400)
 
@@ -52,10 +66,7 @@ def _validate_target(database_name, collection_name, connection_id=None):
 
 
 def _parse_int(request, param, default, minimum, maximum):
-    """
-    Read an integer query parameter and validate its range.
-    Returns (value, None) on success or (None, error_response) on failure.
-    """
+    """Read an integer query parameter and validate its range."""
     raw = request.GET.get(param, default)
 
     try:
@@ -73,7 +84,7 @@ def _parse_int(request, param, default, minimum, maximum):
 
 
 def _keyword_filter(keyword):
-    """Case-insensitive search across title, summary, text, content and raw_payload fields."""
+    """Case-insensitive search across common text and payload fields."""
     pattern = re.escape(keyword)
     fields = [
         "title",
@@ -91,7 +102,7 @@ def _keyword_filter(keyword):
 
 
 def _to_json_safe(documents):
-    """Convert MongoDB documents (ObjectId, datetime, etc.) into JSON-serializable structures."""
+    """Convert MongoDB BSON documents into JSON-serializable structures."""
     return json.loads(json_util.dumps(documents))
 
 
@@ -100,16 +111,24 @@ def _to_json_safe(documents):
 # --------------------------------------------------------------------------
 
 def dashboard(request):
-    """Render the unified NLP intelligence workspace."""
+    """Render the MongoDB Link Connector & Exploration workspace."""
     return render(request, "dashboard.html")
 
 
 @require_GET
 def connection_status(request):
-    """Check connectivity to MongoDB (default or dynamic connection)."""
-    connection_id = request.GET.get("connection_id") or None
+    """Check connectivity for an active MongoDB connection."""
+    connection_id = _get_connection_id(request)
+    if not connection_id:
+        return JsonResponse({
+            "success": True,
+            "connected": False,
+            "message": "No active connection. Connect using a MongoDB URL link.",
+            "connection_id": None,
+        })
+
     result = check_mongodb_connection(connection_id)
-    status_code = 200 if result["connected"] else 503
+    status_code = 200 if result["connected"] else 400
 
     return JsonResponse({
         "success": result["connected"],
@@ -121,9 +140,20 @@ def connection_status(request):
 
 @require_GET
 def dataset_list(request):
-    """List all available datasets (databases and collections) for the active connection."""
+    """List databases and collections for the active MongoDB connection."""
+    connection_id = _get_connection_id(request)
+    if not connection_id:
+        return JsonResponse({
+            "success": True,
+            "connected": False,
+            "count": 0,
+            "connection_id": None,
+            "databases": [],
+            "datasets": [],
+            "message": "No active connection. Connect using a MongoDB URL link.",
+        })
+
     try:
-        connection_id = request.GET.get("connection_id") or None
         datasets = []
         databases = list_databases(connection_id)
 
@@ -139,6 +169,7 @@ def dataset_list(request):
 
         return JsonResponse({
             "success": True,
+            "connected": True,
             "count": len(datasets),
             "connection_id": connection_id,
             "databases": [db for db in databases if db not in SYSTEM_DATABASES],
@@ -149,15 +180,15 @@ def dataset_list(request):
         return _error(str(exc), 400)
     except Exception as exc:
         logger.exception("dataset_list failed")
-        return _error("Unable to retrieve datasets from MongoDB.", 500)
+        return _error("Unable to retrieve collections from MongoDB.", 500)
 
 
 @csrf_exempt
 @require_POST
 def connect_database(request):
     """
-    Connect to a MongoDB cluster using a connection URI link.
-    Supports direct database/collection selection from the link or request payload.
+    Connect to MongoDB solely via a provided connection URL link.
+    Supports auto-extracting database and collection from the link.
     """
     try:
         data = json.loads(request.body)
@@ -167,11 +198,10 @@ def connect_database(request):
 
         uri = data.get("uri")
         if not isinstance(uri, str) or not uri.strip():
-            return _error("A valid MongoDB URI is required.", 400)
+            return _error("A valid MongoDB connection URL link is required.", 400)
 
         result = connect_mongodb(uri.strip())
 
-        # If user explicitly specified db or col in request, override/supplement
         requested_db = data.get("database") or result.get("default_database")
         requested_col = data.get("collection") or result.get("default_collection")
 
@@ -183,7 +213,7 @@ def connect_database(request):
             "databases": result["databases"],
             "default_database": requested_db,
             "default_collection": requested_col,
-            "message": "Successfully connected to MongoDB cluster.",
+            "message": "Connected to MongoDB via link.",
         })
 
     except json.JSONDecodeError:
@@ -191,10 +221,9 @@ def connect_database(request):
     except ValueError as exc:
         return _error(str(exc), 400)
     except Exception as exc:
-        # Do not log the raw URI to keep passwords safe
         logger.exception("connect_database failed")
         return _error(
-            "Unable to connect to MongoDB. Check the URI credentials, network access, or cluster whitelist.",
+            "Unable to connect to MongoDB with provided URL. Check connection string, credentials, or network permissions.",
             400,
         )
 
@@ -202,7 +231,7 @@ def connect_database(request):
 @csrf_exempt
 @require_POST
 def disconnect_database(request):
-    """Disconnect and clean up a dynamic connection client."""
+    """Disconnect and clean up an active MongoDB connection."""
     try:
         data = json.loads(request.body)
         connection_id = data.get("connection_id")
@@ -214,7 +243,7 @@ def disconnect_database(request):
         return JsonResponse({
             "success": True,
             "disconnected": disconnected,
-            "message": "Dynamic connection closed.",
+            "message": "MongoDB connection closed.",
         })
     except Exception as exc:
         return _error(str(exc), 400)
@@ -222,13 +251,13 @@ def disconnect_database(request):
 
 @require_GET
 def collection_schema(request, database_name, collection_name):
-    """Retrieve metadata, document count, and discovered fields for a collection."""
-    try:
-        connection_id = request.GET.get("connection_id") or None
-        error = _validate_target(database_name, collection_name, connection_id)
-        if error:
-            return error
+    """Retrieve document count and detected fields for a collection."""
+    connection_id = _get_connection_id(request)
+    error = _validate_target(database_name, collection_name, connection_id)
+    if error:
+        return error
 
+    try:
         stats = get_collection_stats(database_name, collection_name, connection_id)
         return JsonResponse({
             "success": True,
@@ -236,22 +265,22 @@ def collection_schema(request, database_name, collection_name):
         })
     except Exception as exc:
         logger.exception("collection_schema failed")
-        return _error(f"Unable to retrieve collection schema: {exc}", 500)
+        return _error(f"Unable to retrieve schema: {exc}", 500)
 
 
 @require_GET
 def collection_preview(request, database_name, collection_name):
-    """Return an exploratory preview of records from the selected collection."""
+    """Preview records from a collection on the active connection."""
+    connection_id = _get_connection_id(request)
+    error = _validate_target(database_name, collection_name, connection_id)
+    if error:
+        return error
+
+    limit, error = _parse_int(request, "limit", 10, 1, 100)
+    if error:
+        return error
+
     try:
-        connection_id = request.GET.get("connection_id") or None
-        error = _validate_target(database_name, collection_name, connection_id)
-        if error:
-            return error
-
-        limit, error = _parse_int(request, "limit", 10, 1, 100)
-        if error:
-            return error
-
         collection = get_collection(database_name, collection_name, connection_id)
 
         total_records = collection.count_documents({})
@@ -278,38 +307,29 @@ def collection_preview(request, database_name, collection_name):
 
 @require_GET
 def filter_collection(request, database_name, collection_name):
-    """Search and filter records inside the selected collection."""
+    """Filter records within a collection on the active connection."""
+    connection_id = _get_connection_id(request)
+    error = _validate_target(database_name, collection_name, connection_id)
+    if error:
+        return error
+
+    limit, error = _parse_int(request, "limit", 10, 1, 100)
+    if error:
+        return error
+
+    source = request.GET.get("source", "").strip()
+    language = request.GET.get("language", "").strip()
+    keyword = request.GET.get("keyword", "").strip()
+
+    query = {}
+    if source:
+        query["source_name"] = {"$regex": re.escape(source), "$options": "i"}
+    if language:
+        query["lang"] = {"$regex": f"^{re.escape(language)}$", "$options": "i"}
+    if keyword:
+        query["$or"] = _keyword_filter(keyword)
+
     try:
-        connection_id = request.GET.get("connection_id") or None
-        error = _validate_target(database_name, collection_name, connection_id)
-        if error:
-            return error
-
-        limit, error = _parse_int(request, "limit", 10, 1, 100)
-        if error:
-            return error
-
-        source = request.GET.get("source", "").strip()
-        language = request.GET.get("language", "").strip()
-        keyword = request.GET.get("keyword", "").strip()
-
-        query = {}
-
-        if source:
-            query["source_name"] = {
-                "$regex": re.escape(source),
-                "$options": "i",
-            }
-
-        if language:
-            query["lang"] = {
-                "$regex": f"^{re.escape(language)}$",
-                "$options": "i",
-            }
-
-        if keyword:
-            query["$or"] = _keyword_filter(keyword)
-
         collection = get_collection(database_name, collection_name, connection_id)
 
         total_matching = collection.count_documents(query)
@@ -339,31 +359,26 @@ def filter_collection(request, database_name, collection_name):
 
 @require_GET
 def sample_collection(request, database_name, collection_name):
-    """Extract a representative random sample of documents for testing and NLP analysis."""
+    """Extract a random document sample from a collection on the active connection."""
+    connection_id = _get_connection_id(request)
+    error = _validate_target(database_name, collection_name, connection_id)
+    if error:
+        return error
+
+    sample_size, error = _parse_int(request, "size", 100, 1, 1000)
+    if error:
+        return error
+
+    language = request.GET.get("language", "").strip()
+    keyword = request.GET.get("keyword", "").strip()
+
+    query = {}
+    if language:
+        query["lang"] = {"$regex": f"^{re.escape(language)}$", "$options": "i"}
+    if keyword:
+        query["$or"] = _keyword_filter(keyword)
+
     try:
-        connection_id = request.GET.get("connection_id") or None
-        error = _validate_target(database_name, collection_name, connection_id)
-        if error:
-            return error
-
-        sample_size, error = _parse_int(request, "size", 100, 1, 1000)
-        if error:
-            return error
-
-        language = request.GET.get("language", "").strip()
-        keyword = request.GET.get("keyword", "").strip()
-
-        query = {}
-
-        if language:
-            query["lang"] = {
-                "$regex": f"^{re.escape(language)}$",
-                "$options": "i",
-            }
-
-        if keyword:
-            query["$or"] = _keyword_filter(keyword)
-
         collection = get_collection(database_name, collection_name, connection_id)
 
         total_matching = collection.count_documents(query)
