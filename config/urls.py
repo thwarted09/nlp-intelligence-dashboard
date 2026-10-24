@@ -23,4 +23,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", views.dashboard, name="dashboard"),
     path("api/datasets/", include("datasets.urls")),
+    path("api/nlp/", include("apps.nlp.urls")),
 ]

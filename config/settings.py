@@ -32,6 +32,7 @@ INSTALLED_APPS = [
 
     # Project applications
     "datasets",
+    "apps.nlp",
 ]
 
 

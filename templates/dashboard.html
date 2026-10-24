@@ -1060,8 +1060,129 @@
             </details>
         </section>
 
+        <!-- ================================================================
+             NLP CONNECTOR PANEL
+             ================================================================ -->
+        <section class="panel" id="nlpPanel">
+            <div class="panel-header">
+                <div>
+                    <h2>🧠 NLP Connector</h2>
+                    <p>Run NLP tasks (Sentiment, NER, Keywords, Summarization, Classification, Deduplication, Language Detection) on any connected MongoDB collection.</p>
+                </div>
+                <span id="nlpStatusTag" class="tag">Requires MongoDB Connection</span>
+            </div>
+
+            <div class="panel-body">
+                <!-- NLP Config Form -->
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="nlpCollectionSelect">Collection</label>
+                        <select id="nlpCollectionSelect" disabled>
+                            <option value="">Connect a MongoDB URL above first</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="nlpTextField">Text Field</label>
+                        <input id="nlpTextField" type="text" placeholder="e.g. title, raw_payload.text" disabled>
+                        <div id="nlpFieldChips" style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap;"></div>
+                    </div>
+
+                    <div class="field">
+                        <label for="nlpTaskSelect">NLP Task</label>
+                        <select id="nlpTaskSelect" disabled>
+                            <option value="">Select a task...</option>
+                            <option value="sentiment">😊 Sentiment Analysis</option>
+                            <option value="ner">🏷️ Named Entity Recognition</option>
+                            <option value="keywords">🔑 Keyword Extraction</option>
+                            <option value="summarization">📝 Summarization</option>
+                            <option value="classification">🗂️ Classification</option>
+                            <option value="deduplication">🔍 Deduplication</option>
+                            <option value="language_detection">🌐 Language Detection</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="nlpLimit">Document Limit (max 1,000)</label>
+                        <input id="nlpLimit" type="number" value="50" min="1" max="1000" disabled>
+                        <div style="margin-top:4px; display:flex; gap:4px; flex-wrap:wrap;">
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=25">25</button>
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=50">50</button>
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=100">100</button>
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=500">500</button>
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=1000">1k</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task-specific options -->
+                <div id="nlpTaskOptions" style="display:none; margin-top:16px; padding:14px 16px; background:#f8fafc; border:1px solid var(--border); border-radius:10px;">
+                    <div class="schema-label" style="margin-bottom:10px; font-weight:600;">Task Options</div>
+
+                    <!-- Classification labels -->
+                    <div id="optClassification" style="display:none;">
+                        <label for="nlpCandidateLabels" style="font-size:12px; color:var(--muted);">Topic Labels (comma-separated)</label>
+                        <input id="nlpCandidateLabels" type="text" value="politics, technology, sports, business, health, military, environment, science" style="font-size:13px;">
+                    </div>
+
+                    <!-- Deduplication threshold -->
+                    <div id="optDeduplication" style="display:none;">
+                        <label for="nlpSimThreshold" style="font-size:12px; color:var(--muted);">Similarity Threshold (0.5 – 1.0)</label>
+                        <input id="nlpSimThreshold" type="number" value="0.85" min="0.5" max="1.0" step="0.05" style="font-size:13px;">
+                    </div>
+
+                    <!-- Keywords top_n -->
+                    <div id="optKeywords" style="display:none;">
+                        <label for="nlpTopN" style="font-size:12px; color:var(--muted);">Keywords per Document</label>
+                        <input id="nlpTopN" type="number" value="10" min="1" max="30" style="font-size:13px;">
+                    </div>
+                </div>
+
+                <div class="actions" style="margin-top:18px;">
+                    <button class="btn btn-primary" id="nlpRunBtn" disabled>▶ Run NLP Task</button>
+                    <button class="btn btn-light" id="nlpExportBtn" disabled>Export Results JSON</button>
+                    <button class="btn btn-secondary" id="nlpCapBtn">Check NLP Capabilities</button>
+                </div>
+
+                <!-- NLP Loading indicator -->
+                <div id="nlpLoading" style="display:none; margin-top:16px; color:var(--muted); font-size:13px;">
+                    ⏳ Running NLP task… This may take a moment (model loading on first run).
+                </div>
+
+                <!-- NLP Error notice -->
+                <div id="nlpNotice" class="notice" style="margin-top:12px;"></div>
+            </div>
+
+            <!-- NLP Results -->
+            <div id="nlpResultsWrap" style="display:none;">
+                <div style="padding:14px 20px; background:#f0fdf4; border-top:1px solid #bbf7d0; display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+                    <span class="badge badge-success" id="nlpResultBadge">✓ Task complete</span>
+                    <span style="font-size:13px; color:#475569;" id="nlpResultMeta"></span>
+                </div>
+
+                <!-- Summary cards for supported tasks -->
+                <div id="nlpSummaryCards" style="display:none; padding:16px 20px; display:none; gap:12px; flex-wrap:wrap;"></div>
+
+                <!-- Per-document results table -->
+                <div id="nlpTableWrap" class="table-wrap" style="display:none;">
+                    <table>
+                        <thead id="nlpTableHead"><tr></tr></thead>
+                        <tbody id="nlpTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Corpus result (deduplication) -->
+                <div id="nlpCorpusResult" style="display:none; padding:16px 20px;"></div>
+
+                <details class="json-details">
+                    <summary>View raw NLP JSON response</summary>
+                    <pre id="nlpRawResponse">No NLP response yet.</pre>
+                </details>
+            </div>
+        </section>
+
         <footer class="footer">
-            NLP Intelligence Workspace · Dynamic MongoDB Link Connectors · Zero Default Databases
+            NLP Intelligence Workspace · MongoDB Link Connectors + NLP Connectors · Zero Default Databases
         </footer>
     </main>
 
@@ -1297,6 +1418,7 @@
                 setFormDisabled(false);
                 updateActiveSelectionTag();
                 inspectCollectionSchema();
+                syncNlpCollections();
 
                 emptyHeading.textContent = "Collection ready for exploration";
                 emptyText.textContent = "Click Preview Records or Run Random Sample to inspect documents.";
@@ -1456,6 +1578,7 @@
 
             datasetSelect.innerHTML = '<option value="">Connect a MongoDB URL link above to choose a collection</option>';
             setFormDisabled(true);
+            syncNlpCollections();
             updateActiveSelectionTag();
             collectionMetaBar.style.display = "none";
             paginationBar.style.display = "none";
@@ -1753,6 +1876,407 @@
             clearNotice();
             showNotice("Filters reset.", "success");
         });
+
+        // ====================================================================
+        // NLP CONNECTOR JAVASCRIPT
+        // ====================================================================
+
+        const NLP_BASE = "/api/nlp/";
+
+        // NLP elements
+        const nlpCollectionSelect = document.getElementById("nlpCollectionSelect");
+        const nlpTextField        = document.getElementById("nlpTextField");
+        const nlpTaskSelect       = document.getElementById("nlpTaskSelect");
+        const nlpLimit            = document.getElementById("nlpLimit");
+        const nlpRunBtn           = document.getElementById("nlpRunBtn");
+        const nlpExportBtn        = document.getElementById("nlpExportBtn");
+        const nlpCapBtn           = document.getElementById("nlpCapBtn");
+        const nlpLoading          = document.getElementById("nlpLoading");
+        const nlpNotice           = document.getElementById("nlpNotice");
+        const nlpResultsWrap      = document.getElementById("nlpResultsWrap");
+        const nlpResultBadge      = document.getElementById("nlpResultBadge");
+        const nlpResultMeta       = document.getElementById("nlpResultMeta");
+        const nlpTableWrap        = document.getElementById("nlpTableWrap");
+        const nlpTableHead        = document.getElementById("nlpTableHead");
+        const nlpTableBody        = document.getElementById("nlpTableBody");
+        const nlpCorpusResult     = document.getElementById("nlpCorpusResult");
+        const nlpRawResponse      = document.getElementById("nlpRawResponse");
+        const nlpFieldChips       = document.getElementById("nlpFieldChips");
+        const nlpStatusTag        = document.getElementById("nlpStatusTag");
+        const nlpTaskOptions      = document.getElementById("nlpTaskOptions");
+
+        let nlpLatestResult = null;
+
+        // Helper — show NLP notice
+        function showNlpNotice(msg, type = "error") {
+            nlpNotice.textContent = msg;
+            nlpNotice.className = `notice ${type}`;
+        }
+        function clearNlpNotice() {
+            nlpNotice.textContent = "";
+            nlpNotice.className = "notice";
+        }
+
+        // Sync NLP collection selector whenever dataset list updates
+        function syncNlpCollections() {
+            if (!currentConnectionId) {
+                nlpCollectionSelect.innerHTML = '<option value="">Connect a MongoDB URL above first</option>';
+                nlpCollectionSelect.disabled = true;
+                nlpTextField.disabled = true;
+                nlpTaskSelect.disabled = true;
+                nlpLimit.disabled = true;
+                nlpRunBtn.disabled = true;
+                nlpStatusTag.textContent = "Requires MongoDB Connection";
+                nlpStatusTag.style.background = "";
+                return;
+            }
+
+            // Build option list from activeDatasets (already populated by main connector)
+            const grouped = {};
+            activeDatasets.forEach(d => {
+                grouped[d.database] = grouped[d.database] || [];
+                grouped[d.database].push(d.collection);
+            });
+
+            nlpCollectionSelect.innerHTML = '<option value="">Select a collection...</option>';
+            Object.entries(grouped).forEach(([db, cols]) => {
+                const grp = document.createElement("optgroup");
+                grp.label = db;
+                cols.forEach(col => {
+                    const opt = document.createElement("option");
+                    opt.value = `${db}::${col}`;
+                    opt.textContent = col;
+                    grp.appendChild(opt);
+                });
+                nlpCollectionSelect.appendChild(grp);
+            });
+
+            nlpCollectionSelect.disabled = false;
+            nlpTextField.disabled = false;
+            nlpTaskSelect.disabled = false;
+            nlpLimit.disabled = false;
+            nlpStatusTag.textContent = "Ready";
+            nlpStatusTag.style.background = "#dcfce7";
+            nlpStatusTag.style.color = "#15803d";
+        }
+
+        // When NLP collection changes — populate field chips from schema
+        nlpCollectionSelect.addEventListener("change", async () => {
+            nlpFieldChips.innerHTML = "";
+            const val = nlpCollectionSelect.value;
+            if (!val || !currentConnectionId) return;
+
+            const [db, col] = val.split("::");
+            try {
+                const resp = await fetch(
+                    `${API_BASE}${db}/${col}/schema/?connection_id=${encodeURIComponent(currentConnectionId)}`
+                );
+                const data = await resp.json();
+                if (data.success && data.fields) {
+                    data.fields.forEach(f => {
+                        const chip = document.createElement("button");
+                        chip.type = "button";
+                        chip.className = "schema-chip";
+                        chip.textContent = f;
+                        chip.title = `Use field: ${f}`;
+                        chip.addEventListener("click", () => {
+                            nlpTextField.value = f;
+                        });
+                        nlpFieldChips.appendChild(chip);
+                    });
+                }
+            } catch (e) { /* silent */ }
+        });
+
+        // Show/hide task-specific options
+        nlpTaskSelect.addEventListener("change", () => {
+            const task = nlpTaskSelect.value;
+            document.querySelectorAll("#nlpTaskOptions > div").forEach(d => d.style.display = "none");
+
+            if (["classification", "deduplication", "keywords"].includes(task)) {
+                nlpTaskOptions.style.display = "block";
+                const optEl = document.getElementById("opt" + task.charAt(0).toUpperCase() + task.slice(1));
+                if (optEl) optEl.style.display = "block";
+            } else {
+                nlpTaskOptions.style.display = "none";
+            }
+
+            nlpRunBtn.disabled = !task || !currentConnectionId;
+        });
+
+        // Run NLP task
+        nlpRunBtn.addEventListener("click", async () => {
+            clearNlpNotice();
+            const val = nlpCollectionSelect.value;
+            const task = nlpTaskSelect.value;
+            const textField = nlpTextField.value.trim();
+            const limit = parseInt(nlpLimit.value) || 50;
+
+            if (!currentConnectionId) return showNlpNotice("No MongoDB connection active.");
+            if (!val) return showNlpNotice("Select a collection first.");
+            if (!task) return showNlpNotice("Select an NLP task first.");
+            if (!textField) return showNlpNotice("Enter the text field name (e.g. 'title' or 'raw_payload.text').");
+
+            const [db, col] = val.split("::");
+
+            // Build options
+            const options = {};
+            if (task === "classification") {
+                const raw = document.getElementById("nlpCandidateLabels").value;
+                options.candidate_labels = raw.split(",").map(s => s.trim()).filter(Boolean);
+            }
+            if (task === "deduplication") {
+                options.similarity_threshold = parseFloat(document.getElementById("nlpSimThreshold").value) || 0.85;
+            }
+            if (task === "keywords") {
+                options.top_n = parseInt(document.getElementById("nlpTopN").value) || 10;
+            }
+
+            const payload = {
+                connection_id: currentConnectionId,
+                database: db,
+                collection: col,
+                text_field: textField,
+                task: task,
+                limit: limit,
+                options: options,
+            };
+
+            nlpRunBtn.disabled = true;
+            nlpLoading.style.display = "block";
+            nlpResultsWrap.style.display = "none";
+            nlpExportBtn.disabled = true;
+
+            const t0 = Date.now();
+            try {
+                const resp = await fetch(`${NLP_BASE}run/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                const data = await resp.json();
+                const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+
+                nlpLatestResult = data;
+                nlpRawResponse.textContent = JSON.stringify(data, null, 2);
+
+                if (!data.success) {
+                    showNlpNotice(data.error || "NLP task failed.", "error");
+                } else {
+                    renderNlpResults(data, elapsed);
+                    nlpExportBtn.disabled = false;
+                }
+            } catch (err) {
+                showNlpNotice(`Network error: ${err.message}`, "error");
+            } finally {
+                nlpRunBtn.disabled = false;
+                nlpLoading.style.display = "none";
+            }
+        });
+
+        function renderNlpResults(data, elapsed) {
+            nlpResultsWrap.style.display = "block";
+
+            // Badge + meta
+            nlpResultBadge.textContent = `✓ ${data.task.replace(/_/g," ")} complete`;
+            nlpResultMeta.textContent =
+                `${data.processed_documents} docs processed | ${data.skipped_documents} skipped | Method: ${data.method} | ${elapsed}s`;
+
+            // Reset panels
+            nlpTableWrap.style.display = "none";
+            nlpCorpusResult.style.display = "none";
+            nlpTableHead.innerHTML = "";
+            nlpTableBody.innerHTML = "";
+
+            if (data.output_type === "corpus") {
+                renderCorpusResult(data.results);
+            } else {
+                renderPerDocTable(data.task, data.results || []);
+            }
+        }
+
+        function renderCorpusResult(results) {
+            nlpCorpusResult.style.display = "block";
+
+            if (results.task === "deduplication") {
+                const r = results;
+                nlpCorpusResult.innerHTML = `
+                    <div class="stats" style="grid-template-columns:repeat(4,1fr); margin:0 0 16px;">
+                        <article class="stat-card"><div class="stat-heading"><span class="stat-label">Total Docs</span></div><div class="stat-value">${r.total_docs}</div></article>
+                        <article class="stat-card"><div class="stat-heading"><span class="stat-label">Unique</span></div><div class="stat-value" style="color:var(--success)">${r.unique_count}</div></article>
+                        <article class="stat-card"><div class="stat-heading"><span class="stat-label">Duplicates</span></div><div class="stat-value" style="color:var(--danger)">${r.duplicate_count}</div></article>
+                        <article class="stat-card"><div class="stat-heading"><span class="stat-label">Threshold</span></div><div class="stat-value">${r.similarity_threshold}</div></article>
+                    </div>
+                    ${r.exact_duplicate_groups && r.exact_duplicate_groups.length ?
+                        `<div style="margin-bottom:12px;"><strong>Exact Duplicate Groups (${r.exact_duplicate_groups.length}):</strong>
+                         <ul style="font-size:12px;">${r.exact_duplicate_groups.map(g => `<li>Canonical: ${g.canonical} → Duplicates: ${g.duplicates.join(", ")}</li>`).join("")}</ul></div>` : ""}
+                    ${r.near_duplicate_groups && r.near_duplicate_groups.length ?
+                        `<div><strong>Near-Duplicate Groups (${r.near_duplicate_groups.length}, threshold ≥${r.similarity_threshold}):</strong>
+                         <ul style="font-size:12px;">${r.near_duplicate_groups.map(g => `<li>Canonical: ${g.canonical} → Duplicates: ${g.duplicates.join(", ")} (avg sim: ${g.avg_similarity})</li>`).join("")}</ul></div>` : ""}
+                `;
+            } else {
+                nlpCorpusResult.innerHTML = `<pre>${JSON.stringify(results, null, 2)}</pre>`;
+            }
+        }
+
+        function renderPerDocTable(task, results) {
+            if (!results.length) {
+                nlpTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted)">No results returned.</td></tr>';
+                nlpTableWrap.style.display = "block";
+                return;
+            }
+
+            // Build columns based on task
+            let columns = [];
+            if (task === "sentiment") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "label", label: "Sentiment" },
+                    { key: "score", label: "Confidence" },
+                ];
+            } else if (task === "ner") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "entities", label: "Entities" },
+                    { key: "entity_count", label: "Count" },
+                ];
+            } else if (task === "keywords") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "keywords", label: "Keywords" },
+                    { key: "method", label: "Method" },
+                ];
+            } else if (task === "summarization") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "summary", label: "Summary" },
+                    { key: "method", label: "Method" },
+                    { key: "original_length", label: "Orig Chars" },
+                ];
+            } else if (task === "classification") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "top_label", label: "Category" },
+                    { key: "method", label: "Method" },
+                ];
+            } else if (task === "language_detection") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "language_name", label: "Language" },
+                    { key: "language_code", label: "Code" },
+                    { key: "confidence", label: "Confidence" },
+                ];
+            } else {
+                columns = [{ key: "#", label: "#" }, ...Object.keys(results[0]).map(k => ({ key: k, label: k }))];
+            }
+
+            // Header
+            const tr = document.createElement("tr");
+            columns.forEach(c => {
+                const th = document.createElement("th");
+                th.textContent = c.label;
+                tr.appendChild(th);
+            });
+            nlpTableHead.appendChild(tr);
+
+            // Rows
+            results.slice(0, 500).forEach((r, i) => {
+                const row = document.createElement("tr");
+                columns.forEach(c => {
+                    const td = document.createElement("td");
+                    if (c.key === "#") {
+                        td.textContent = i + 1;
+                        td.style.color = "var(--muted)";
+                        td.style.fontSize = "11px";
+                    } else if (c.key === "label") {
+                        const lbl = (r.label || "").toLowerCase();
+                        td.innerHTML = `<span class="badge ${lbl === "positive" ? "badge-success" : "badge-danger"}">${lbl}</span>`;
+                    } else if (c.key === "top_label") {
+                        td.innerHTML = `<span class="badge badge-neutral" style="text-transform:capitalize">${r.top_label || "—"}</span>`;
+                    } else if (c.key === "entities") {
+                        const ents = r.entities || {};
+                        td.innerHTML = Object.entries(ents).map(
+                            ([t, ws]) => `<span class="schema-chip" title="${t}">${t}: ${ws.slice(0,3).join(", ")}${ws.length > 3 ? "…" : ""}</span>`
+                        ).join(" ");
+                    } else if (c.key === "keywords") {
+                        const kws = (r.keywords || []).slice(0, 8);
+                        td.innerHTML = kws.map(
+                            kw => `<span class="schema-chip">${kw.word} <small style="color:var(--muted)">${kw.score}</small></span>`
+                        ).join(" ");
+                    } else if (c.key === "language_name") {
+                        td.innerHTML = `<span class="badge badge-neutral">${r.language_name || "—"}</span>`;
+                    } else if (c.key === "score" || c.key === "confidence") {
+                        const val = r[c.key];
+                        const pct = Math.round((val || 0) * 100);
+                        td.innerHTML = `<span style="font-weight:600; color:${pct >= 70 ? "var(--success)" : "var(--muted)"}">${pct}%</span>`;
+                    } else if (c.key === "text_preview" || c.key === "summary") {
+                        td.textContent = (r[c.key] || "—").slice(0, 200);
+                        td.style.maxWidth = "320px";
+                        td.style.fontSize = "12px";
+                        td.style.lineHeight = "1.5";
+                        td.style.overflowWrap = "anywhere";
+                    } else {
+                        const v = r[c.key];
+                        td.textContent = typeof v === "object" ? JSON.stringify(v).slice(0, 80) : (v ?? "—");
+                    }
+                    row.appendChild(td);
+                });
+                nlpTableBody.appendChild(row);
+            });
+
+            nlpTableWrap.style.display = "block";
+        }
+
+        // Export NLP results
+        nlpExportBtn.addEventListener("click", () => {
+            if (!nlpLatestResult) return;
+            const blob = new Blob([JSON.stringify(nlpLatestResult, null, 2)], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `nlp_${nlpLatestResult.task}_${Date.now()}.json`;
+            a.click();
+            a.remove();
+        });
+
+        // Check capabilities
+        nlpCapBtn.addEventListener("click", async () => {
+            try {
+                const resp = await fetch(`${NLP_BASE}capabilities/`);
+                const data = await resp.json();
+                nlpRawResponse.textContent = JSON.stringify(data, null, 2);
+                nlpResultsWrap.style.display = "block";
+                nlpResultBadge.textContent = data.transformers_ready ? "✓ Transformers Ready" : "⚠ Transformers Unavailable (fallback mode)";
+                nlpResultMeta.textContent = `Libraries: ${Object.entries(data.libraries || {}).map(([k,v]) => `${k}=${v || "✗"}`).join(" | ")}`;
+            } catch (e) {
+                showNlpNotice(`Failed: ${e.message}`, "error");
+            }
+        });
+
+        // Hook into existing connect/disconnect flow to sync NLP panel
+        const _origOnConnected = typeof onConnected !== "undefined" ? onConnected : null;
+
+        // Observe connection state changes via MutationObserver on the connection status element
+        const nlpObserver = new MutationObserver(() => {
+            if (currentConnectionId) {
+                syncNlpCollections();
+            }
+        });
+        nlpObserver.observe(document.getElementById("connectionStatus"), { childList: true, subtree: true, attributes: true });
+
+        // Also patch the disconnect flow
+        const _origDisconnect = disconnectBtn.onclick;
+        disconnectBtn.addEventListener("click", () => {
+            setTimeout(syncNlpCollections, 200);
+        });
+
+        // Patch dataset load to also sync NLP on successful dataset list
+        const _origDatasetLoad = typeof loadDatasets !== "undefined" ? loadDatasets : null;
+
     </script>
 </body>
 </html>

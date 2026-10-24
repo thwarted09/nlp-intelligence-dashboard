@@ -4,3 +4,14 @@ pymongo[srv]>=4.6.0
 python-dotenv>=1.0.0
 pytest>=8.0.0
 pytest-django>=4.8.0
+bson
+
+# NLP dependencies
+torch>=2.0.0
+transformers>=4.40.0
+keybert>=0.8.0
+sentence-transformers>=2.0.0
+langdetect>=1.0.9
+scikit-learn>=1.4.0
+sentencepiece>=0.1.99
+numpy>=1.24.0
