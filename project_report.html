@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IntelNLP Studio — Project Progress & Architecture Report</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm 14mm 16mm 14mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #0f172a;
+      line-height: 1.5;
+      font-size: 10pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      font-weight: 700;
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 20pt;
+      margin-bottom: 4pt;
+      color: #0284c7;
+    }
+
+    h2 {
+      font-size: 13pt;
+      border-bottom: 1.5pt solid #0284c7;
+      padding-bottom: 3pt;
+      margin-top: 16pt;
+      margin-bottom: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    h3 {
+      font-size: 11pt;
+      margin-top: 10pt;
+      margin-bottom: 4pt;
+      color: #1e293b;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 6pt;
+      color: #334155;
+    }
+
+    /* Header Banner */
+    .header-banner {
+      background: linear-gradient(135deg, #090d16 0%, #0f172a 100%);
+      color: #ffffff;
+      padding: 18pt 20pt;
+      border-radius: 8pt;
+      margin-bottom: 16pt;
+      border-left: 6pt solid #0284c7;
+    }
+
+    .header-banner h1 {
+      color: #38bdf8;
+      margin: 0 0 4pt 0;
+    }
+
+    .header-banner .subtitle {
+      font-size: 11pt;
+      color: #94a3b8;
+      margin-bottom: 10pt;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8pt;
+      font-size: 8.5pt;
+      border-top: 1pt solid #334155;
+      padding-top: 8pt;
+    }
+
+    .meta-item strong {
+      color: #38bdf8;
+      display: block;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-item span {
+      color: #f1f5f9;
+    }
+
+    /* Cards */
+    .card {
+      background: #f8fafc;
+      border: 1pt solid #e2e8f0;
+      border-radius: 6pt;
+      padding: 10pt 12pt;
+      margin-bottom: 10pt;
+      page-break-inside: avoid;
+    }
+
+    .card-title {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 4pt;
+      display: flex;
+      align-items: center;
+      gap: 6pt;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6pt;
+      margin-bottom: 10pt;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      text-align: left;
+      padding: 5pt 7pt;
+      font-weight: 700;
+      border-bottom: 1.5pt solid #cbd5e1;
+      text-transform: uppercase;
+      font-size: 7.5pt;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 5pt 7pt;
+      border-bottom: 1pt solid #e2e8f0;
+      color: #334155;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td {
+      background: #fafafa;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 1.5pt 5pt;
+      border-radius: 3pt;
+      font-size: 7.5pt;
+      font-weight: 600;
+      font-family: Consolas, monospace;
+    }
+
+    .badge-blue { background: #e0f2fe; color: #0369a1; border: 0.5pt solid #7dd3fc; }
+    .badge-green { background: #dcfce7; color: #15803d; border: 0.5pt solid #86efac; }
+    .badge-amber { background: #fef3c7; color: #b45309; border: 0.5pt solid #fde68a; }
+    .badge-purple { background: #f3e8ff; color: #7e22ce; border: 0.5pt solid #d8b4fe; }
+    .badge-red { background: #fee2e2; color: #b91c1c; border: 0.5pt solid #fca5a5; }
+
+    /* Code */
+    code, pre {
+      font-family: Consolas, "JetBrains Mono", Courier, monospace;
+      font-size: 8pt;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 8pt 10pt;
+      border-radius: 4pt;
+      overflow-x: auto;
+      margin: 4pt 0 8pt 0;
+      line-height: 1.4;
+    }
+
+    .code-inline {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 1pt 3pt;
+      border-radius: 2pt;
+      border: 0.5pt solid #cbd5e1;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10pt;
+      page-break-inside: avoid;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .highlight-box {
+      border-left: 3pt solid #0284c7;
+      background: #f0f9ff;
+      padding: 8pt 10pt;
+      margin-bottom: 8pt;
+      font-size: 9pt;
+      color: #0369a1;
+      border-radius: 0 4pt 4pt 0;
+    }
+
+    ul {
+      margin-top: 2pt;
+      margin-bottom: 6pt;
+      padding-left: 14pt;
+    }
+
+    li {
+      margin-bottom: 3pt;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <h1>🛰️ IntelNLP Studio</h1>
+    <div class="subtitle">Intelligence Collection & Perception Testing Workspace — Project Progress & Architecture Report</div>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <strong>Project Status</strong>
+        <span>Phase 1 Completed (100%)</span>
+      </div>
+      <div class="meta-item">
+        <strong>Current Environment</strong>
+        <span>React 19, TypeScript, Tailwind v4</span>
+      </div>
+      <div class="meta-item">
+        <strong>Database</strong>
+        <span>MongoDB (BSON / Collections)</span>
+      </div>
+      <div class="meta-item">
+        <strong>Backend Architecture</strong>
+        <span>FastAPI + PyMongo (Ready)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <h2>1. Executive Summary</h2>
+  <div class="highlight-box">
+    <strong>Project Objective:</strong> Build a dedicated intelligence perception testing workspace that ingests raw dispatches, intercepted feeds, and news data collected in MongoDB. The platform provides interactive data slicing, multi-stage NLP pipeline creation, live streaming execution logs, perception scoring, and human validation.
+  </div>
+  <p>
+    During Phase 1, the entire frontend workspace was designed, implemented, compiled, and verified on Windows with zero build or runtime errors. In addition, an API contract and a complete starter backend implementation using Python FastAPI and PyMongo was delivered with MongoDB database seeding utilities.
+  </p>
+
+  <!-- Complete Feature Inventory -->
+  <h2>2. Completed Feature Inventory</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🗄️ 1. Dataset & Collection Ingestion</div>
+      <ul>
+        <li><strong>MongoDB Collections Switcher:</strong> Direct switching between preloaded intelligence collections (Geopolitics, Tech Perception, Threat Streams, Crisis Response).</li>
+        <li><strong>Test Partition Sampling:</strong> 1-click test sampling presets (5, 10, 25, 50, 100 documents) or custom slice limit to extract a working partition from MongoDB (avoiding dumping the entire database at once).</li>
+        <li><strong>Selective Document Staging for NLP:</strong> Interactive checkboxes and staging deck allowing analysts to cherry-pick exactly which records are taken forward for the NLP activity (rather than blindly processing the whole collection).</li>
+        <li><strong>Sampling Methods:</strong> Random Uniform (MongoDB $sample), Sequential (First N), and Most Recent First.</li>
+        <li><strong>Search & Source Filters:</strong> Filter by keyword or source type (News, Telegram, Social, Forum, Diplomatic Wire).</li>
+        <li><strong>BSON/JSON Inspector:</strong> Full modal displaying raw MongoDB representation with <code>ObjectId</code>, <code>ISODate</code>, and 1-click clipboard copy.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚙️ 2. Modular NLP Pipeline Builder</div>
+      <ul>
+        <li><strong>8 Predefined NLP Tasks:</strong> NER, Perception Polarity, Stance Alignment, Emotion Profiling, Narrative Tagging, Keyphrases, Summaries, Integrity Screening.</li>
+        <li><strong>Interactive Architecture Flowchart:</strong> Visual flow graph displaying data passing through each stage to final output.</li>
+        <li><strong>Execution Reordering:</strong> Move stages up/down, toggle active/inactive with one click.</li>
+        <li><strong>Hyper-parameter Tuner:</strong> Modal slider controls for confidence thresholds, model runtimes, and summary formats.</li>
+        <li><strong>Workflow Presets:</strong> Pre-configured suites including <em>Full OSINT Suite</em>, <em>Rapid Screener</em>, <em>Threat Triage</em>, and <em>Executive Briefer</em>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">⚡ 3. Job Execution & Streaming Console</div>
+      <ul>
+        <li><strong>Live Telemetry:</strong> Real-time progress bar with document throughput (<code>docs/sec</code>), elapsed seconds, and ETA.</li>
+        <li><strong>Streaming Terminal Console:</strong> Live output logs color-coded by severity (<code>INFO</code>, <code>SUCCESS</code>, <code>WARN</code>, <code>ERROR</code>, <code>DEBUG</code>).</li>
+        <li><strong>Log Controls:</strong> Search inside logs, filter by level, toggle auto-scroll, and export/download log file as <code>.txt</code>.</li>
+        <li><strong>Job Lifecycle:</strong> Manages state across <code>IDLE</code>, <code>QUEUED</code>, <code>RUNNING</code>, <code>COMPLETED</code>, and <code>FAILED</code>.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 4. Validation & Perception Analytics</div>
+      <ul>
+        <li><strong>Interactive Entity Highlighter:</strong> Color-coded token badges over text for <code>PERSON</code>, <code>ORG</code>, <code>GPE</code>, <code>EVENT</code>, <code>PRODUCT</code> with confidence scores on hover.</li>
+        <li><strong>Perception Polarity Gauge:</strong> Needle meter from -1.0 (Critical/Panic) to +1.0 (Favorable) with Subjectivity Index.</li>
+        <li><strong>Affect Spectrum Radar:</strong> Breakdown of 6 emotions (Fear, Anger, Trust, Joy, Sadness, Surprise) with panic escalation alerts.</li>
+        <li><strong>Executive 3-Bullet SITREP:</strong> Synthesized bullet-point briefs.</li>
+        <li><strong>Human Validation:</strong> Approve, flag, or correct predictions.</li>
+        <li><strong>Exporting:</strong> Enriched export to JSON and CSV.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Additional Specialized Features -->
+  <h2>3. Specialized Intelligence & Perception Features</h2>
+
+  <div class="card">
+    <div class="card-title">🧪 Single-Text Real-Time Playground</div>
+    <p>
+      An ad-hoc testing sandbox allowing analysts to paste any single intercept, breaking news bulletin, or raw social post. The active pipeline executes in ~200ms without initiating a full batch job, rendering entity tokens, polarity gauges, and emotional affect scores immediately.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔌 Backend Architecture & API Spec Guide</div>
+    <p>
+      To empower backend development, a dedicated configuration panel provides:
+    </p>
+    <ul>
+      <li><strong>Dual Operation Modes:</strong> Switch instantly between <em>Simulation Mode</em> (in-browser offline mock database) and <em>Live Backend API</em> (points to <code>http://localhost:8000</code>).</li>
+      <li><strong>Connection Health Ping:</strong> 1-click test button verifying backend and MongoDB availability.</li>
+      <li><strong>REST Contract Documentation:</strong> Full schema specifications for datasets, queries, and execution endpoints.</li>
+      <li><strong>FastAPI + PyMongo Template:</strong> Copyable, battle-tested Python code.</li>
+    </ul>
+  </div>
+
+  <!-- Predefined NLP Tasks Reference -->
+  <h2>4. Predefined NLP Tasks Catalog</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Task Name</th>
+        <th style="width: 18%;">Category</th>
+        <th style="width: 27%;">Available Model Runtimes</th>
+        <th style="width: 30%;">Intelligence Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Named Entity Recognition (NER)</strong></td>
+        <td><span class="badge badge-blue">Entity & Extraction</span></td>
+        <td><code>spaCy en_core_web_trf</code>, <code>BERT-NER</code>, <code>GLiNER</code></td>
+        <td>Extracts people, military units, organizations, and geopolitical entities.</td>
+      </tr>
+      <tr>
+        <td><strong>Perception & Sentiment Polarity</strong></td>
+        <td><span class="badge badge-green">Perception & Stance</span></td>
+        <td><code>Twitter-RoBERTa</code>, <code>FinBERT</code>, <code>VADER</code></td>
+        <td>Calculates tone polarity (-1.0 to +1.0) and subjectivity ratio.</td>
+      </tr>
+      <tr>
+        <td><strong>Target Stance Detection</strong></td>
+        <td><span class="badge badge-green">Perception & Stance</span></td>
+        <td><code>BART-Large MNLI Zero-Shot</code></td>
+        <td>Identifies Support, Oppose, or Neutral stance towards security pacts or policies.</td>
+      </tr>
+      <tr>
+        <td><strong>Affect Spectrum & Emotion</strong></td>
+        <td><span class="badge badge-green">Perception & Stance</span></td>
+        <td><code>DistilRoBERTa 6-Channel</code></td>
+        <td>Measures Fear, Anger, Trust, Joy, Sadness; flags panic escalation triggers.</td>
+      </tr>
+      <tr>
+        <td><strong>Narrative Classification</strong></td>
+        <td><span class="badge badge-purple">Classification</span></td>
+        <td><code>Valhalla DistilBART</code>, <code>BERTopic</code></td>
+        <td>Categorizes intercepts into Geopolitical, Cyber Sabotage, or Economic Panic.</td>
+      </tr>
+      <tr>
+        <td><strong>Keyphrase Extraction</strong></td>
+        <td><span class="badge badge-blue">Entity & Extraction</span></td>
+        <td><code>KeyBERT MiniLM-L6</code>, <code>YAKE</code></td>
+        <td>Surfaces high-salience tactical terminology and threat identifiers.</td>
+      </tr>
+      <tr>
+        <td><strong>Executive Summarization</strong></td>
+        <td><span class="badge badge-amber">Synthesis</span></td>
+        <td><code>BART-Large CNN</code>, <code>Pegasus-XSUM</code></td>
+        <td>Condenses lengthy intelligence transcripts into 3-bullet SITREPs.</td>
+      </tr>
+      <tr>
+        <td><strong>Integrity & Toxicity Check</strong></td>
+        <td><span class="badge badge-red">Safety & Quality</span></td>
+        <td><code>Toxic-BERT</code>, <code>Propaganda Classifier</code></td>
+        <td>Screens for coordinated influence campaigns, hostility, and bot probability.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- File Structure & Code Inventory -->
+  <h2>5. Complete Codebase Inventory</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 32%;">File Path</th>
+        <th style="width: 18%;">Layer</th>
+        <th style="width: 50%;">Description / Responsibilities</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>src/App.tsx</code></td>
+        <td>Orchestration</td>
+        <td>Main root coordinating tab state, active dataset, pipeline runs, and notifications.</td>
+      </tr>
+      <tr>
+        <td><code>src/components/dataset/</code></td>
+        <td>UI Component</td>
+        <td>DatasetSelector, FilterPanel, DataTableView, and DocumentJsonViewer (BSON modal).</td>
+      </tr>
+      <tr>
+        <td><code>src/components/pipeline/</code></td>
+        <td>UI Component</td>
+        <td>PipelineBuilder, PipelineFlowGraph, and TaskConfigModal (hyperparameters).</td>
+      </tr>
+      <tr>
+        <td><code>src/components/execution/</code></td>
+        <td>UI Component</td>
+        <td>JobRunnerPanel, ProgressIndicator (docs/s), and LiveLogViewer (streaming console).</td>
+      </tr>
+      <tr>
+        <td><code>src/components/results/</code></td>
+        <td>UI Component</td>
+        <td>ResultsDashboard, EntityHighlighter, SentimentPolarityBar, PerceptionRadar, ItemDetailDrawer.</td>
+      </tr>
+      <tr>
+        <td><code>src/components/playground/</code></td>
+        <td>UI Component</td>
+        <td>SingleTextTester (real-time single text sandbox testing).</td>
+      </tr>
+      <tr>
+        <td><code>src/components/backendGuide/</code></td>
+        <td>UI Component</td>
+        <td>BackendConnectorModal (API specification, connection pings, and code guides).</td>
+      </tr>
+      <tr>
+        <td><code>src/services/api.ts</code></td>
+        <td>Networking</td>
+        <td>API client managing dual-mode operation (Live FastAPI endpoint vs Simulation).</td>
+      </tr>
+      <tr>
+        <td><code>src/services/nlpEngine.ts</code></td>
+        <td>Engine</td>
+        <td>In-browser simulation engine generating realistic NER, sentiment, and emotion outputs.</td>
+      </tr>
+      <tr>
+        <td><code>backend/server.py</code></td>
+        <td>Backend (Python)</td>
+        <td>FastAPI server implementing health checks, MongoDB collection listing, and querying.</td>
+      </tr>
+      <tr>
+        <td><code>backend/seed_mongodb.py</code></td>
+        <td>Backend (Python)</td>
+        <td>Script populating local MongoDB collections with intelligence dispatches.</td>
+      </tr>
+      <tr>
+        <td><code>backend/requirements.txt</code></td>
+        <td>Dependencies</td>
+        <td>FastAPI, Uvicorn, PyMongo, Pydantic, python-dotenv dependencies.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Phase 2 Roadmap -->
+  <h2>6. Phase 2 Roadmap & Next Steps</h2>
+  <div class="card">
+    <div class="card-title">Option A: Real Backend Implementation (FastAPI + PyMongo + Model Runtimes)</div>
+    <p>
+      Launch local MongoDB service, run <code>seed_mongodb.py</code> to create live database collections, and implement real model inference in Python (using <strong>spaCy</strong> for entities and <strong>Transformers / VADER</strong> for perception). Switch frontend to "Live API" mode for end-to-end processing.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Option B: Real-Time WebSocket Streaming</div>
+    <p>
+      Upgrade HTTP polling to WebSockets (<code>ws://localhost:8000/ws/job/{id}</code>) so token-by-token logs and inference progress stream directly into the dashboard console with zero latency.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Option C: Advanced Perception & Entity Analytics</div>
+    <p>
+      Add temporal perception tracking (sentiment shift across dates) and an interactive <strong>Entity Relationship Graph</strong> visualizing co-occurrence networks between geopolitical actors, organizations, and targets.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Option D: Docker Containerization</div>
+    <p>
+      Create a <code>docker-compose.yml</code> file orchestrating the React Frontend, FastAPI Backend, and MongoDB container with a single command: <code>docker compose up</code>.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div style="margin-top: 24pt; border-top: 1pt solid #cbd5e1; padding-top: 8pt; text-align: center; font-size: 8pt; color: #64748b;">
+    IntelNLP Studio • Confidential Intelligence Collection & Perception Testing System • Generated on November 22, 2026
+  </div>
+
+</body>
+</html>
