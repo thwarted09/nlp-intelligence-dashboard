@@ -1,0 +1,2282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoDB Link Connector & Dataset Explorer</title>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #eef2ff;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        button, input, select {
+            font: inherit;
+        }
+
+        .topbar {
+            background: #0f172a;
+            color: white;
+            padding: 16px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+        }
+
+        .brand h2 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .brand p {
+            margin: 2px 0 0;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-tag {
+            border: 1px solid #334155;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: #cbd5e1;
+            font-size: 12px;
+            background: #1e293b;
+        }
+
+        .container {
+            max-width: 1450px;
+            padding: 26px 5%;
+            margin: auto;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 26px 30px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 70%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .eyebrow {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 6px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: clamp(22px, 2.8vw, 30px);
+            letter-spacing: -0.6px;
+            color: #0f172a;
+        }
+
+        .hero p {
+            max-width: 680px;
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 13.5px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 30px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 12.5px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+
+        .status-pill.online {
+            background: var(--success-bg);
+            color: #166534;
+        }
+
+        .status-pill.online .status-dot {
+            background: var(--success);
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+        }
+
+        .status-pill.offline {
+            background: var(--danger-bg);
+            color: #991b1b;
+        }
+
+        .status-pill.offline .status-dot {
+            background: var(--danger);
+        }
+
+        /* Connector Card */
+        .connector-card {
+            background: var(--surface);
+            border: 2px solid #e0e7ff;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.06);
+            overflow: hidden;
+        }
+
+        .connector-header {
+            padding: 18px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .connector-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .connector-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: grid;
+            place-items: center;
+            font-size: 19px;
+        }
+
+        .connector-title h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .connector-title p {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 12.5px;
+            word-break: break-all;
+        }
+
+        .connector-body {
+            padding: 24px;
+            background: #fafbfc;
+        }
+
+        .connector-form-grid {
+            display: grid;
+            grid-template-columns: 2.8fr 1.1fr 1.1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .connector-hint {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .connector-active-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding: 16px 20px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+        }
+
+        .connector-active-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 20px 22px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
+        }
+
+        .stat-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 12.5px;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: grid;
+            place-items: center;
+            font-size: 15px;
+        }
+
+        .stat-value {
+            margin-top: 12px;
+            font-size: 26px;
+            font-weight: 750;
+            letter-spacing: -0.5px;
+            color: #0f172a;
+        }
+
+        .stat-note {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 11.5px;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.025);
+        }
+
+        .panel-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .panel-header p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .panel-body {
+            padding: 22px 24px;
+        }
+
+        /* Forms */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.3fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .field label {
+            color: #334155;
+            font-size: 12px;
+            font-weight: 650;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            min-width: 0;
+            padding: 11px 13px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            outline: none;
+            color: var(--text);
+            font-size: 13.5px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
+        .field input:disabled,
+        .field select:disabled {
+            background: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* Schema Field Badges */
+        .collection-meta-bar {
+            margin-top: 18px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .schema-fields-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .schema-label {
+            font-size: 11.5px;
+            font-weight: 650;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+
+        .field-chip {
+            padding: 3px 8px;
+            border-radius: 5px;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 11px;
+            font-family: monospace;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .field-chip:hover {
+            background: #cbd5e1;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: var(--success-bg);
+            color: #15803d;
+        }
+
+        .badge-neutral {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            transition: all .15s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        .btn-secondary:hover {
+            background: #e0e7ff;
+        }
+
+        .btn-light {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-light:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-danger-light {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid #fecaca;
+        }
+
+        .btn-small {
+            padding: 6px 11px;
+            font-size: 12px;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .meta-chip {
+            border-radius: 7px;
+            padding: 6px 11px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .btn-preset {
+            padding: 2px 7px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-preset:hover {
+            background: #eef2ff;
+            color: var(--primary);
+            border-color: #a5b4fc;
+        }
+
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 11px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .pagination-info {
+            font-size: 12.5px;
+            color: var(--muted);
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pagination-page-indicator {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th, td {
+            padding: 13px 18px;
+            border-bottom: 1px solid #edf0f5;
+            vertical-align: top;
+        }
+
+        td {
+            color: #334155;
+            font-size: 13px;
+        }
+
+        tbody tr:hover {
+            background: #fafbff;
+        }
+
+        .record-title {
+            color: #0f172a;
+            font-weight: 600;
+            line-height: 1.45;
+            min-width: 220px;
+            max-width: 480px;
+            overflow-wrap: anywhere;
+        }
+
+        .record-subtitle {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 4px;
+            line-height: 1.45;
+            max-width: 480px;
+            overflow-wrap: anywhere;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 5px;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .empty-state {
+            padding: 50px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 6px;
+            color: #1e293b;
+            font-size: 15px;
+            font-weight: 650;
+        }
+
+        .empty-state p {
+            margin: 0;
+            line-height: 1.6;
+            font-size: 13px;
+        }
+
+        .notice {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 9px;
+            margin-bottom: 18px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+            font-size: 13px;
+        }
+
+        .notice.error {
+            display: block;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--danger);
+        }
+
+        .notice.success {
+            display: block;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: var(--success);
+        }
+
+        .json-details {
+            margin: 12px 18px 18px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            overflow: hidden;
+        }
+
+        .json-details summary {
+            padding: 10px 14px;
+            background: #f8fafc;
+            cursor: pointer;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        pre {
+            margin: 0;
+            padding: 16px;
+            background: #0f172a;
+            color: #a7f3d0;
+            font-size: 12px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            overflow-x: auto;
+            max-height: 420px;
+            font-family: Consolas, Monaco, "Courier New", monospace;
+        }
+
+        .footer {
+            padding: 24px 0 12px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        @media (max-width: 950px) {
+            .form-grid,
+            .connector-form-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 16px 4%;
+            }
+
+            .stats,
+            .form-grid,
+            .connector-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions .btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">N</div>
+            <div>
+                <h2>NLP Intelligence Workspace</h2>
+                <p>MongoDB Link Connector & Dataset Explorer</p>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <span class="topbar-tag">MongoDB Link Driven · Zero Hardcoded DB</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div>
+                <div class="eyebrow">Direct Link Connectors</div>
+                <h1>Choose any MongoDB collection directly.</h1>
+                <p>
+                    Connect strictly using any MongoDB connection URL link (Atlas or standalone).
+                    Discover collections, inspect schema fields, search text, and generate random samples.
+                </p>
+            </div>
+
+            <div id="connectionStatus" class="status-pill">
+                <span class="status-dot"></span>
+                <span id="connectionText">No MongoDB URL Connected</span>
+            </div>
+        </section>
+
+        <!-- Notification Banner -->
+        <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+        <!-- MongoDB URL Connector (Primary Entry Point) -->
+        <section class="connector-card">
+            <div class="connector-header">
+                <div class="connector-info">
+                    <div class="connector-icon">🔗</div>
+                    <div class="connector-title">
+                        <h3 id="connectorCardHeading">MongoDB URL Connector</h3>
+                        <p id="connectorCardDesc">Paste a MongoDB connection URL to connect and explore collections.</p>
+                    </div>
+                </div>
+
+                <div id="connectorHeaderActions">
+                    <button id="disconnectBtn" class="btn btn-danger-light btn-small" style="display: none;">
+                        ✕ Disconnect / Enter New URL
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Connection Banner (Shown when connected) -->
+            <div id="activeConnectionBanner" class="connector-body" style="display: none; background: #ffffff;">
+                <div class="connector-active-bar">
+                    <div class="connector-active-info">
+                        <span class="badge badge-success">✓ Connected via URL Link</span>
+                        <code id="activeMaskedUri" style="font-size: 13px; color: #1e293b; font-weight: 600;">mongodb+srv://...</code>
+                    </div>
+                    <div style="font-size: 12px; color: #64748b;">
+                        Active Session ID: <span id="activeConnectionId" style="font-family: monospace;">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connection Form (Shown when not connected) -->
+            <div id="connectorForm" class="connector-body">
+                <div class="connector-form-grid">
+                    <div class="field">
+                        <label for="mongoUriInput">MongoDB Connection URL / Link</label>
+                        <input id="mongoUriInput" type="text"
+                               placeholder="mongodb+srv://username:password@cluster0.xxx.mongodb.net/database_name/collection_name">
+                    </div>
+
+                    <div class="field">
+                        <label for="directDbInput">Database (Optional)</label>
+                        <input id="directDbInput" type="text" placeholder="e.g. Events">
+                    </div>
+
+                    <div class="field">
+                        <label for="directColInput">Collection (Optional)</label>
+                        <input id="directColInput" type="text" placeholder="e.g. news_events">
+                    </div>
+
+                    <div class="field">
+                        <button id="connectUriBtn" class="btn btn-primary" style="height: 42px;">
+                            Connect & Explore
+                        </button>
+                    </div>
+                </div>
+
+                <div class="connector-hint">
+                    💡 <strong>Direct Jump:</strong> If you paste a full collection URL like <code>mongodb+srv://.../Events/news_events</code> or specify a database & collection, the workspace will connect and jump directly into exploring that collection.
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats">
+            <article class="stat-card">
+                <div class="stat-heading">
+                    <span class="stat-label">Available Collections</span>
+                    <span class="stat-icon">▦</span>
+                </div>
+                <div id="datasetCount" class="stat-value">—</div>
+                <div class="stat-note">From connected URL</div>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-heading">
+                    <span class="stat-label">Databases</span>
+                    <span class="stat-icon">🗄</span>
+                </div>
+                <div id="databaseCount" class="stat-value">—</div>
+                <div class="stat-note">Discovered in cluster</div>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-heading">
+                    <span class="stat-label">Matching Records</span>
+                    <span class="stat-icon">⌕</span>
+                </div>
+                <div id="matchingCount" class="stat-value">—</div>
+                <div class="stat-note">From latest query</div>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-heading">
+                    <span class="stat-label">Records Displayed</span>
+                    <span class="stat-icon">▤</span>
+                </div>
+                <div id="returnedCount" class="stat-value">—</div>
+                <div class="stat-note">Loaded in table view</div>
+            </article>
+        </section>
+
+        <!-- Dataset Explorer Panel -->
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Collection Explorer</h2>
+                    <p>Select any collection from the connected MongoDB URL to inspect records, schemas, and text features.</p>
+                </div>
+                <span id="activeSelectionTag" class="tag">No Collection Selected</span>
+            </div>
+
+            <div class="panel-body">
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="datasetSelect">Dataset / Collection</label>
+                        <select id="datasetSelect" disabled>
+                            <option value="">Connect a MongoDB URL link above to choose a collection</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="keyword">Keyword search</label>
+                        <input id="keyword" type="text"
+                               placeholder="e.g. military, technology, ai" disabled>
+                    </div>
+
+                    <div class="field">
+                        <label for="language">Language</label>
+                        <select id="language" disabled>
+                            <option value="">All languages</option>
+                            <option value="en">English (en)</option>
+                            <option value="hi">Hindi (hi)</option>
+                            <option value="es">Spanish (es)</option>
+                            <option value="fr">French (fr)</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="sampleSize">Limit / Sample size (max 5,000)</label>
+                        <input id="sampleSize" type="number"
+                               value="25" min="1" max="5000" disabled>
+                        <div class="preset-chips" style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button type="button" class="btn-preset" data-size="25">25</button>
+                            <button type="button" class="btn-preset" data-size="50">50</button>
+                            <button type="button" class="btn-preset" data-size="100">100</button>
+                            <button type="button" class="btn-preset" data-size="500">500</button>
+                            <button type="button" class="btn-preset" data-size="1000">1k</button>
+                            <button type="button" class="btn-preset" data-size="5000">5k</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Collection Meta Bar (Discovered Schema Fields) -->
+                <div id="collectionMetaBar" class="collection-meta-bar" style="display: none;">
+                    <div class="schema-fields-wrap">
+                        <span class="schema-label">Detected Schema Fields:</span>
+                        <div id="schemaChipsList" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+                    </div>
+                    <div id="collectionDocCount" class="badge badge-neutral">Total Documents: —</div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-primary" id="previewBtn" disabled>
+                        Preview Records
+                    </button>
+                    <button class="btn btn-secondary" id="filterBtn" disabled>
+                        Filter Records
+                    </button>
+                    <button class="btn btn-secondary" id="sampleBtn" disabled>
+                        Run Random Sample ($sample)
+                    </button>
+                    <button class="btn btn-light" id="exportJsonBtn" disabled>
+                        Export as JSON
+                    </button>
+                    <button class="btn btn-light" id="resetBtn" disabled>
+                        Reset Filters
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Explorer Panel -->
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Results & Data Explorer</h2>
+                    <p id="resultDescription">
+                        Connect a MongoDB URL link above and select a collection to inspect records.
+                    </p>
+                </div>
+
+                <div class="result-meta">
+                    <span class="meta-chip" id="operationChip">No operation</span>
+                    <span class="meta-chip" id="resultTime">Not run yet</span>
+                </div>
+            </div>
+
+            <div id="emptyState" class="empty-state">
+                <div class="empty-icon">🔗</div>
+                <h3 id="emptyHeading">No MongoDB connection active</h3>
+                <p id="emptyText">
+                    Paste your MongoDB connection link in the connector above and click <strong>Connect & Explore</strong> to begin.
+                </p>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div id="paginationBar" class="pagination-bar" style="display: none;">
+                <div class="pagination-info">
+                    Showing <strong id="pageRange">0-0</strong> of <strong id="totalItemsCount">0</strong> records
+                </div>
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" class="btn btn-light btn-small" type="button">◄ Previous</button>
+                    <span class="pagination-page-indicator">Page <span id="currentPageNum">1</span> of <span id="totalPagesNum">1</span></span>
+                    <button id="nextPageBtn" class="btn btn-light btn-small" type="button">Next ►</button>
+                </div>
+            </div>
+
+            <div id="tableWrap" class="table-wrap" hidden>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title / Text Content</th>
+                            <th>Language</th>
+                            <th>Source</th>
+                            <th>Domain</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+
+            <details class="json-details">
+                <summary>View raw JSON response</summary>
+                <pre id="rawResponse">No API response yet.</pre>
+            </details>
+        </section>
+
+        <!-- ================================================================
+             NLP CONNECTOR PANEL
+             ================================================================ -->
+        <section class="panel" id="nlpPanel">
+            <div class="panel-header">
+                <div>
+                    <h2>🧠 NLP Connector</h2>
+                    <p>Run NLP tasks (Sentiment, NER, Keywords, Summarization, Classification, Deduplication, Language Detection) on any connected MongoDB collection.</p>
+                </div>
+                <span id="nlpStatusTag" class="tag">Requires MongoDB Connection</span>
+            </div>
+
+            <div class="panel-body">
+                <!-- NLP Config Form -->
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="nlpCollectionSelect">Collection</label>
+                        <select id="nlpCollectionSelect" disabled>
+                            <option value="">Connect a MongoDB URL above first</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="nlpTextField">Text Field</label>
+                        <input id="nlpTextField" type="text" placeholder="e.g. title, raw_payload.text" disabled>
+                        <div id="nlpFieldChips" style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap;"></div>
+                    </div>
+
+                    <div class="field">
+                        <label for="nlpTaskSelect">NLP Task</label>
+                        <select id="nlpTaskSelect" disabled>
+                            <option value="">Select a task...</option>
+                            <option value="sentiment">😊 Sentiment Analysis</option>
+                            <option value="ner">🏷️ Named Entity Recognition</option>
+                            <option value="keywords">🔑 Keyword Extraction</option>
+                            <option value="summarization">📝 Summarization</option>
+                            <option value="classification">🗂️ Classification</option>
+                            <option value="deduplication">🔍 Deduplication</option>
+                            <option value="language_detection">🌐 Language Detection</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="nlpLimit">Document Limit (max 1,000)</label>
+                        <input id="nlpLimit" type="number" value="50" min="1" max="1000" disabled>
+                        <div style="margin-top:4px; display:flex; gap:4px; flex-wrap:wrap;">
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=25">25</button>
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=50">50</button>
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=100">100</button>
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=500">500</button>
+                            <button type="button" class="btn-preset" onclick="document.getElementById('nlpLimit').value=1000">1k</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task-specific options -->
+                <div id="nlpTaskOptions" style="display:none; margin-top:16px; padding:14px 16px; background:#f8fafc; border:1px solid var(--border); border-radius:10px;">
+                    <div class="schema-label" style="margin-bottom:10px; font-weight:600;">Task Options</div>
+
+                    <!-- Classification labels -->
+                    <div id="optClassification" style="display:none;">
+                        <label for="nlpCandidateLabels" style="font-size:12px; color:var(--muted);">Topic Labels (comma-separated)</label>
+                        <input id="nlpCandidateLabels" type="text" value="politics, technology, sports, business, health, military, environment, science" style="font-size:13px;">
+                    </div>
+
+                    <!-- Deduplication threshold -->
+                    <div id="optDeduplication" style="display:none;">
+                        <label for="nlpSimThreshold" style="font-size:12px; color:var(--muted);">Similarity Threshold (0.5 – 1.0)</label>
+                        <input id="nlpSimThreshold" type="number" value="0.85" min="0.5" max="1.0" step="0.05" style="font-size:13px;">
+                    </div>
+
+                    <!-- Keywords top_n -->
+                    <div id="optKeywords" style="display:none;">
+                        <label for="nlpTopN" style="font-size:12px; color:var(--muted);">Keywords per Document</label>
+                        <input id="nlpTopN" type="number" value="10" min="1" max="30" style="font-size:13px;">
+                    </div>
+                </div>
+
+                <div class="actions" style="margin-top:18px;">
+                    <button class="btn btn-primary" id="nlpRunBtn" disabled>▶ Run NLP Task</button>
+                    <button class="btn btn-light" id="nlpExportBtn" disabled>Export Results JSON</button>
+                    <button class="btn btn-secondary" id="nlpCapBtn">Check NLP Capabilities</button>
+                </div>
+
+                <!-- NLP Loading indicator -->
+                <div id="nlpLoading" style="display:none; margin-top:16px; color:var(--muted); font-size:13px;">
+                    ⏳ Running NLP task… This may take a moment (model loading on first run).
+                </div>
+
+                <!-- NLP Error notice -->
+                <div id="nlpNotice" class="notice" style="margin-top:12px;"></div>
+            </div>
+
+            <!-- NLP Results -->
+            <div id="nlpResultsWrap" style="display:none;">
+                <div style="padding:14px 20px; background:#f0fdf4; border-top:1px solid #bbf7d0; display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+                    <span class="badge badge-success" id="nlpResultBadge">✓ Task complete</span>
+                    <span style="font-size:13px; color:#475569;" id="nlpResultMeta"></span>
+                </div>
+
+                <!-- Summary cards for supported tasks -->
+                <div id="nlpSummaryCards" style="display:none; padding:16px 20px; display:none; gap:12px; flex-wrap:wrap;"></div>
+
+                <!-- Per-document results table -->
+                <div id="nlpTableWrap" class="table-wrap" style="display:none;">
+                    <table>
+                        <thead id="nlpTableHead"><tr></tr></thead>
+                        <tbody id="nlpTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Corpus result (deduplication) -->
+                <div id="nlpCorpusResult" style="display:none; padding:16px 20px;"></div>
+
+                <details class="json-details">
+                    <summary>View raw NLP JSON response</summary>
+                    <pre id="nlpRawResponse">No NLP response yet.</pre>
+                </details>
+            </div>
+        </section>
+
+        <footer class="footer">
+            NLP Intelligence Workspace · MongoDB Link Connectors + NLP Connectors · Zero Default Databases
+        </footer>
+    </main>
+
+    <script>
+        const API_BASE = "/api/datasets/";
+
+        // State: solely driven by connection_id
+        let currentConnectionId = null;
+        let activeDatasets = [];
+        let latestApiResponse = null;
+        let lastOperation = null;
+        let currentPage = 1;
+        let totalPages = 1;
+
+        // Elements
+        const connectionStatus = document.getElementById("connectionStatus");
+        const connectionText = document.getElementById("connectionText");
+        const notice = document.getElementById("notice");
+
+        // Connector Elements
+        const connectorCardHeading = document.getElementById("connectorCardHeading");
+        const connectorCardDesc = document.getElementById("connectorCardDesc");
+        const connectorForm = document.getElementById("connectorForm");
+        const activeConnectionBanner = document.getElementById("activeConnectionBanner");
+        const activeMaskedUri = document.getElementById("activeMaskedUri");
+        const activeConnectionId = document.getElementById("activeConnectionId");
+        const disconnectBtn = document.getElementById("disconnectBtn");
+        const mongoUriInput = document.getElementById("mongoUriInput");
+        const directDbInput = document.getElementById("directDbInput");
+        const directColInput = document.getElementById("directColInput");
+        const connectUriBtn = document.getElementById("connectUriBtn");
+
+        // Explorer Elements
+        const datasetSelect = document.getElementById("datasetSelect");
+        const keywordInput = document.getElementById("keyword");
+        const languageSelect = document.getElementById("language");
+        const sampleSizeInput = document.getElementById("sampleSize");
+        const activeSelectionTag = document.getElementById("activeSelectionTag");
+        const collectionMetaBar = document.getElementById("collectionMetaBar");
+        const schemaChipsList = document.getElementById("schemaChipsList");
+        const collectionDocCount = document.getElementById("collectionDocCount");
+
+        // Pagination Elements
+        const paginationBar = document.getElementById("paginationBar");
+        const pageRange = document.getElementById("pageRange");
+        const totalItemsCount = document.getElementById("totalItemsCount");
+        const currentPageNum = document.getElementById("currentPageNum");
+        const totalPagesNum = document.getElementById("totalPagesNum");
+        const prevPageBtn = document.getElementById("prevPageBtn");
+        const nextPageBtn = document.getElementById("nextPageBtn");
+
+        // Buttons
+        const previewBtn = document.getElementById("previewBtn");
+        const filterBtn = document.getElementById("filterBtn");
+        const sampleBtn = document.getElementById("sampleBtn");
+        const exportJsonBtn = document.getElementById("exportJsonBtn");
+        const resetBtn = document.getElementById("resetBtn");
+
+        // Results Elements
+        const resultsBody = document.getElementById("resultsBody");
+        const tableWrap = document.getElementById("tableWrap");
+        const emptyState = document.getElementById("emptyState");
+        const emptyHeading = document.getElementById("emptyHeading");
+        const emptyText = document.getElementById("emptyText");
+        const rawResponse = document.getElementById("rawResponse");
+        const datasetCount = document.getElementById("datasetCount");
+        const databaseCount = document.getElementById("databaseCount");
+        const matchingCount = document.getElementById("matchingCount");
+        const returnedCount = document.getElementById("returnedCount");
+
+        // Notifications
+        function showNotice(message, type = "error") {
+            notice.textContent = message;
+            notice.className = "notice " + type;
+            notice.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        function clearNotice() {
+            notice.textContent = "";
+            notice.className = "notice";
+        }
+
+        function setConnectionStatus(connected, message = null) {
+            connectionStatus.classList.toggle("online", connected);
+            connectionStatus.classList.toggle("offline", !connected && currentConnectionId !== null);
+            connectionText.textContent = message || (connected ? "Connected to MongoDB URL" : "No MongoDB URL Connected");
+        }
+
+        function setFormDisabled(disabled) {
+            [datasetSelect, keywordInput, languageSelect, sampleSizeInput, previewBtn, filterBtn, sampleBtn, exportJsonBtn, resetBtn]
+                .forEach(el => {
+                    if (el) el.disabled = disabled;
+                });
+        }
+
+        function setLoading(loading, activeButton = null) {
+            [previewBtn, filterBtn, sampleBtn, exportJsonBtn, resetBtn, connectUriBtn]
+                .forEach(button => {
+                    if (button) button.disabled = loading;
+                });
+
+            if (loading && activeButton) {
+                activeButton.dataset.originalText = activeButton.textContent;
+                activeButton.textContent = "Connecting...";
+            } else {
+                [previewBtn, filterBtn, sampleBtn, connectUriBtn].forEach(button => {
+                    if (button && button.dataset.originalText) {
+                        button.textContent = button.dataset.originalText;
+                        delete button.dataset.originalText;
+                    }
+                });
+            }
+        }
+
+        async function fetchJSON(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    ...(options.headers || {})
+                }
+            });
+
+            const text = await response.text();
+            let data;
+
+            try {
+                data = JSON.parse(text);
+            } catch {
+                throw new Error(`The server returned a non-JSON response (HTTP ${response.status}).`);
+            }
+
+            if (!response.ok) {
+                throw new Error(data.error || data.detail || `Request failed with HTTP ${response.status}.`);
+            }
+
+            if (data.success === false) {
+                throw new Error(data.error || "The requested operation failed.");
+            }
+
+            return data;
+        }
+
+        // Parse URI path for database & collection
+        function parseMongoUri(uri) {
+            try {
+                const withoutProtocol = uri.replace(/^mongodb(\+srv)?:\/\//, "");
+                const slashIndex = withoutProtocol.indexOf("/");
+                if (slashIndex !== -1) {
+                    const pathAndQuery = withoutProtocol.slice(slashIndex + 1);
+                    const pathOnly = pathAndQuery.split("?")[0].trim();
+                    const parts = pathOnly.split("/").filter(Boolean);
+                    return {
+                        database: parts[0] || null,
+                        collection: parts[1] || null
+                    };
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+            return { database: null, collection: null };
+        }
+
+        // Auto-fill direct inputs when user pastes URI
+        mongoUriInput.addEventListener("input", () => {
+            const parsed = parseMongoUri(mongoUriInput.value.trim());
+            if (parsed.database && !directDbInput.value) {
+                directDbInput.value = parsed.database;
+            }
+            if (parsed.collection && !directColInput.value) {
+                directColInput.value = parsed.collection;
+            }
+        });
+
+        // Load Datasets for the connected URL
+        async function loadDatasets(connectionId, preferredSelection = null) {
+            clearNotice();
+            datasetSelect.innerHTML = '<option value="">Loading collections...</option>';
+
+            try {
+                const url = `${API_BASE}?connection_id=${encodeURIComponent(connectionId)}`;
+                const data = await fetchJSON(url);
+                activeDatasets = Array.isArray(data.datasets) ? data.datasets : [];
+                const databases = Array.isArray(data.databases) ? data.databases : [];
+
+                datasetSelect.replaceChildren();
+
+                if (activeDatasets.length === 0) {
+                    datasetSelect.add(new Option("No collections found in this cluster", ""));
+                    datasetCount.textContent = "0";
+                    databaseCount.textContent = databases.length.toString();
+                    showNotice("Connected to URL, but no user collections were found.", "warning");
+                    return;
+                }
+
+                // Group collections by database
+                const dbGroups = {};
+                activeDatasets.forEach(item => {
+                    const db = item.database;
+                    const col = item.collection;
+                    if (!dbGroups[db]) dbGroups[db] = [];
+                    dbGroups[db].push(col);
+                });
+
+                let matchingOptionValue = null;
+
+                Object.keys(dbGroups).sort().forEach(db => {
+                    const optgroup = document.createElement("optgroup");
+                    optgroup.label = `Database: ${db}`;
+
+                    dbGroups[db].sort().forEach(col => {
+                        const val = `${db}::${col}`;
+                        const opt = new Option(`${db} / ${col}`, val);
+                        optgroup.appendChild(opt);
+
+                        if (preferredSelection &&
+                            preferredSelection.database === db &&
+                            preferredSelection.collection === col) {
+                            matchingOptionValue = val;
+                        }
+                    });
+
+                    datasetSelect.appendChild(optgroup);
+                });
+
+                if (matchingOptionValue) {
+                    datasetSelect.value = matchingOptionValue;
+                }
+
+                datasetCount.textContent = activeDatasets.length.toLocaleString();
+                databaseCount.textContent = Object.keys(dbGroups).length.toLocaleString();
+                setFormDisabled(false);
+                updateActiveSelectionTag();
+                inspectCollectionSchema();
+                syncNlpCollections();
+
+                emptyHeading.textContent = "Collection ready for exploration";
+                emptyText.textContent = "Click Preview Records or Run Random Sample to inspect documents.";
+
+            } catch (error) {
+                datasetSelect.replaceChildren(new Option("Unable to load collections", ""));
+                datasetCount.textContent = "—";
+                databaseCount.textContent = "—";
+                showNotice("Could not load collections: " + error.message);
+            }
+        }
+
+        // Get currently selected database & collection
+        function getSelectedDataset() {
+            if (!currentConnectionId) {
+                throw new Error("No active MongoDB connection. Please connect a MongoDB URL link above.");
+            }
+
+            const val = datasetSelect.value;
+            if (!val) throw new Error("Please select a collection first.");
+            const sep = val.indexOf("::");
+            if (sep === -1) throw new Error("Invalid collection selection.");
+            return {
+                database: val.slice(0, sep),
+                collection: val.slice(sep + 2)
+            };
+        }
+
+        function updateActiveSelectionTag() {
+            try {
+                const target = getSelectedDataset();
+                activeSelectionTag.textContent = `${target.database} · ${target.collection}`;
+            } catch {
+                activeSelectionTag.textContent = "No Collection Selected";
+            }
+        }
+
+        datasetSelect.addEventListener("change", () => {
+            updateActiveSelectionTag();
+            inspectCollectionSchema();
+        });
+
+        // Inspect Collection Schema & Total Documents
+        async function inspectCollectionSchema() {
+            if (!currentConnectionId) return;
+
+            try {
+                const target = getSelectedDataset();
+                const url = `${API_BASE}${encodeURIComponent(target.database)}/${encodeURIComponent(target.collection)}/schema/?connection_id=${encodeURIComponent(currentConnectionId)}`;
+
+                const data = await fetchJSON(url);
+                collectionMetaBar.style.display = "flex";
+                collectionDocCount.textContent = `Total Documents: ${Number(data.total_records || 0).toLocaleString()}`;
+
+                schemaChipsList.replaceChildren();
+                const fields = Array.isArray(data.fields) ? data.fields : [];
+
+                if (fields.length === 0) {
+                    schemaChipsList.textContent = "No fields detected";
+                } else {
+                    fields.forEach(f => {
+                        const chip = document.createElement("span");
+                        chip.className = "field-chip";
+                        chip.textContent = f;
+                        chip.title = `Field '${f}' in this collection`;
+                        chip.addEventListener("click", () => {
+                            keywordInput.value = f;
+                            showNotice(`Filter keyword set to field '${f}'`, "success");
+                        });
+                        schemaChipsList.appendChild(chip);
+                    });
+                }
+            } catch {
+                collectionMetaBar.style.display = "none";
+            }
+        }
+
+        // Connect via MongoDB URL Link Button Handler
+        connectUriBtn.addEventListener("click", async () => {
+            const uri = mongoUriInput.value.trim();
+            if (!uri) {
+                showNotice("Please enter a MongoDB connection URL link.");
+                return;
+            }
+
+            clearNotice();
+            setLoading(true, connectUriBtn);
+
+            try {
+                const payload = {
+                    uri: uri,
+                    database: directDbInput.value.trim() || undefined,
+                    collection: directColInput.value.trim() || undefined
+                };
+
+                const res = await fetchJSON(API_BASE + "connect/", {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+
+                currentConnectionId = res.connection_id;
+                setConnectionStatus(true, "Connected to MongoDB URL");
+
+                // Switch UI to connected state
+                connectorCardHeading.textContent = "Connected MongoDB URL";
+                connectorCardDesc.textContent = "Active connection established via provided URL link.";
+                activeMaskedUri.textContent = res.masked_uri || uri;
+                activeConnectionId.textContent = res.connection_id.slice(0, 8) + "…";
+                connectorForm.style.display = "none";
+                activeConnectionBanner.style.display = "block";
+                disconnectBtn.style.display = "inline-flex";
+
+                showNotice("Connected to MongoDB successfully via URL link!", "success");
+
+                const preferred = (res.default_database && res.default_collection)
+                    ? { database: res.default_database, collection: res.default_collection }
+                    : null;
+
+                await loadDatasets(currentConnectionId, preferred);
+
+                if (preferred) {
+                    // Automatically run preview if a collection was given in the link!
+                    runOperation("preview", previewBtn);
+                }
+
+            } catch (err) {
+                setConnectionStatus(false, "Connection failed");
+                showNotice("Failed to connect: " + err.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Disconnect Button Handler
+        disconnectBtn.addEventListener("click", async () => {
+            if (currentConnectionId) {
+                try {
+                    await fetchJSON(API_BASE + "disconnect/", {
+                        method: "POST",
+                        body: JSON.stringify({ connection_id: currentConnectionId })
+                    });
+                } catch {
+                    // Clean up UI regardless
+                }
+            }
+
+            currentConnectionId = null;
+            activeDatasets = [];
+            latestApiResponse = null;
+
+            setConnectionStatus(false, "No MongoDB URL Connected");
+            connectorCardHeading.textContent = "MongoDB URL Connector";
+            connectorCardDesc.textContent = "Paste a MongoDB connection URL to connect and explore collections.";
+            connectorForm.style.display = "block";
+            activeConnectionBanner.style.display = "none";
+            disconnectBtn.style.display = "none";
+
+            datasetSelect.innerHTML = '<option value="">Connect a MongoDB URL link above to choose a collection</option>';
+            setFormDisabled(true);
+            syncNlpCollections();
+            updateActiveSelectionTag();
+            collectionMetaBar.style.display = "none";
+            paginationBar.style.display = "none";
+            currentPage = 1;
+            totalPages = 1;
+
+            datasetCount.textContent = "—";
+            databaseCount.textContent = "—";
+            matchingCount.textContent = "—";
+            returnedCount.textContent = "—";
+
+            tableWrap.hidden = true;
+            emptyState.hidden = false;
+            emptyHeading.textContent = "No MongoDB connection active";
+            emptyText.textContent = "Paste your MongoDB connection link in the connector above and click Connect & Explore to begin.";
+            rawResponse.textContent = "No API response yet.";
+            document.getElementById("operationChip").textContent = "No operation";
+            document.getElementById("resultTime").textContent = "Not run yet";
+            document.getElementById("resultDescription").textContent = "Connect a MongoDB URL link above and select a collection to inspect records.";
+
+            showNotice("Disconnected from MongoDB URL.", "success");
+        });
+
+        // Document helpers
+        function getRecords(data) {
+            if (Array.isArray(data.preview)) return data.preview;
+            if (Array.isArray(data.records)) return data.records;
+            if (Array.isArray(data.results)) return data.results;
+            if (Array.isArray(data.data)) return data.data;
+            return [];
+        }
+
+        function getValue(record, key) {
+            if (record[key] !== undefined && record[key] !== null) return record[key];
+            if (record.raw_payload && record.raw_payload[key] !== undefined && record.raw_payload[key] !== null) {
+                return record.raw_payload[key];
+            }
+            return "";
+        }
+
+        function getTitle(record) {
+            return getValue(record, "title") ||
+                   getValue(record, "name") ||
+                   getValue(record, "headline") ||
+                   getValue(record, "summary") ||
+                   getValue(record, "text") ||
+                   getValue(record, "description") ||
+                   "(Untitled Record)";
+        }
+
+        function getSummary(record) {
+            const title = getTitle(record);
+            const summary = getValue(record, "summary") ||
+                            getValue(record, "description") ||
+                            getValue(record, "text") ||
+                            getValue(record, "content");
+            return summary && summary !== title ? summary : "";
+        }
+
+        function createCell(val) {
+            const td = document.createElement("td");
+            td.textContent = (val === undefined || val === null || val === "") ? "—" : String(val);
+            return td;
+        }
+
+        function createTagCell(val) {
+            const td = document.createElement("td");
+            const tag = document.createElement("span");
+            tag.className = "tag";
+            tag.textContent = val || "—";
+            td.appendChild(tag);
+            return td;
+        }
+
+        function renderRecords(records, data = null) {
+            resultsBody.replaceChildren();
+
+            if (records.length === 0) {
+                tableWrap.hidden = true;
+                paginationBar.style.display = "none";
+                emptyState.hidden = false;
+                emptyHeading.textContent = "No records found";
+                emptyText.textContent = "Try altering your keyword filters or selecting another collection.";
+                return;
+            }
+
+            const page = (data && data.page) ? data.page : 1;
+            const limit = (data && data.limit) ? data.limit : records.length;
+            const startIndex = (page - 1) * limit;
+
+            records.forEach((record, index) => {
+                const tr = document.createElement("tr");
+
+                tr.appendChild(createCell(startIndex + index + 1));
+
+                const titleCell = document.createElement("td");
+                const title = document.createElement("div");
+                title.className = "record-title";
+                title.textContent = getTitle(record);
+                titleCell.appendChild(title);
+
+                const summaryText = getSummary(record);
+                if (summaryText) {
+                    const summary = document.createElement("div");
+                    summary.className = "record-subtitle";
+                    summary.textContent = summaryText.length > 200 ? summaryText.slice(0, 200) + "…" : summaryText;
+                    titleCell.appendChild(summary);
+                }
+
+                tr.appendChild(titleCell);
+                tr.appendChild(createTagCell(String(getValue(record, "lang") || "—")));
+                tr.appendChild(createCell(getValue(record, "source_name") || getValue(record, "source")));
+                tr.appendChild(createCell(getValue(record, "domain")));
+
+                const actionCell = document.createElement("td");
+                const inspectBtn = document.createElement("button");
+                inspectBtn.className = "btn btn-light btn-small";
+                inspectBtn.textContent = "View JSON";
+
+                inspectBtn.addEventListener("click", () => {
+                    const existing = actionCell.querySelector("pre");
+                    if (existing) {
+                        existing.remove();
+                        inspectBtn.textContent = "View JSON";
+                        return;
+                    }
+
+                    const pre = document.createElement("pre");
+                    pre.textContent = JSON.stringify(record, null, 2);
+                    pre.style.marginTop = "8px";
+                    pre.style.minWidth = "260px";
+                    actionCell.appendChild(pre);
+                    inspectBtn.textContent = "Hide JSON";
+                });
+
+                actionCell.appendChild(inspectBtn);
+                tr.appendChild(actionCell);
+
+                resultsBody.appendChild(tr);
+            });
+
+            // Pagination Bar Handling
+            if (data && (lastOperation === "preview" || lastOperation === "filter")) {
+                totalPages = data.total_pages || 1;
+                currentPage = data.page || 1;
+                const total = data.total_matching ?? data.total_records ?? records.length;
+
+                paginationBar.style.display = "flex";
+                pageRange.textContent = `${startIndex + 1}–${startIndex + records.length}`;
+                totalItemsCount.textContent = Number(total).toLocaleString();
+                currentPageNum.textContent = currentPage;
+                totalPagesNum.textContent = totalPages;
+
+                prevPageBtn.disabled = currentPage <= 1;
+                nextPageBtn.disabled = currentPage >= totalPages;
+            } else {
+                paginationBar.style.display = "none";
+            }
+
+            emptyState.hidden = true;
+            tableWrap.hidden = false;
+        }
+
+        function updateStatistics(data, records) {
+            const total = data.total_matching ?? data.total_records ?? records.length;
+            const returned = data.returned_records ?? records.length;
+            matchingCount.textContent = Number(total).toLocaleString();
+            returnedCount.textContent = Number(returned).toLocaleString();
+        }
+
+        function buildQuery(operation, page = 1) {
+            const params = new URLSearchParams();
+            const keyword = keywordInput.value.trim();
+            const language = languageSelect.value;
+
+            if (keyword) params.set("keyword", keyword);
+            if (language) params.set("language", language);
+            if (currentConnectionId) params.set("connection_id", currentConnectionId);
+
+            const size = Number(sampleSizeInput.value) || 25;
+
+            if (operation === "preview") {
+                params.set("limit", String(Math.min(Math.max(size, 1), 5000)));
+                params.set("page", String(page));
+            } else if (operation === "filter") {
+                params.set("limit", String(Math.min(Math.max(size, 1), 5000)));
+                params.set("page", String(page));
+            } else if (operation === "sample") {
+                params.set("size", String(Math.min(Math.max(size, 1), 5000)));
+            }
+
+            return params.toString();
+        }
+
+        async function runOperation(operation, button, page = 1) {
+            clearNotice();
+            currentPage = page;
+            lastOperation = operation;
+
+            try {
+                const target = getSelectedDataset();
+
+                const endpoint = {
+                    preview: "preview/",
+                    filter: "filter/",
+                    sample: "sample/"
+                }[operation];
+
+                const url = `${API_BASE}${encodeURIComponent(target.database)}/${encodeURIComponent(target.collection)}/${endpoint}?${buildQuery(operation, page)}`;
+
+                setLoading(true, button);
+                document.getElementById("resultDescription").textContent = "Fetching documents from MongoDB...";
+                document.getElementById("operationChip").textContent = operation.charAt(0).toUpperCase() + operation.slice(1);
+
+                const data = await fetchJSON(url);
+                latestApiResponse = data;
+                const records = getRecords(data);
+
+                renderRecords(records, data);
+                updateStatistics(data, records);
+
+                rawResponse.textContent = JSON.stringify(data, null, 2);
+                document.getElementById("resultTime").textContent = new Date().toLocaleTimeString();
+                document.getElementById("resultDescription").textContent =
+                    `Showing ${records.length} records from ${target.database}.${target.collection}` +
+                    (data.total_pages ? ` (Page ${data.page} of ${data.total_pages})` : "");
+
+                showNotice(`Completed ${operation} operation successfully.`, "success");
+
+            } catch (err) {
+                showNotice(err.message || "Operation failed.");
+                document.getElementById("resultDescription").textContent = "The operation could not be completed.";
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Preset Limit Chips Event Listeners
+        document.querySelectorAll(".btn-preset").forEach(btn => {
+            btn.addEventListener("click", () => {
+                if (!sampleSizeInput.disabled) {
+                    sampleSizeInput.value = btn.dataset.size;
+                    showNotice(`Limit set to ${btn.dataset.size} records.`, "success");
+                }
+            });
+        });
+
+        // Pagination Buttons
+        prevPageBtn.addEventListener("click", () => {
+            if (currentPage > 1 && lastOperation) {
+                runOperation(lastOperation, null, currentPage - 1);
+            }
+        });
+
+        nextPageBtn.addEventListener("click", () => {
+            if (currentPage < totalPages && lastOperation) {
+                runOperation(lastOperation, null, currentPage + 1);
+            }
+        });
+
+        // Export as JSON Handler
+        exportJsonBtn.addEventListener("click", () => {
+            if (!latestApiResponse) {
+                showNotice("No records to export yet. Run an operation first.");
+                return;
+            }
+
+            const records = getRecords(latestApiResponse);
+            if (records.length === 0) {
+                showNotice("Current results set has 0 records.");
+                return;
+            }
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(records, null, 2));
+            const downloadAnchor = document.createElement("a");
+            downloadAnchor.setAttribute("href", dataStr);
+            const target = getSelectedDataset();
+            downloadAnchor.setAttribute("download", `${target.database}_${target.collection}_export.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+            showNotice(`Exported ${records.length} records to JSON file.`, "success");
+        });
+
+        // Event Listeners
+        previewBtn.addEventListener("click", () => runOperation("preview", previewBtn, 1));
+        filterBtn.addEventListener("click", () => runOperation("filter", filterBtn, 1));
+        sampleBtn.addEventListener("click", () => runOperation("sample", sampleBtn, 1));
+
+        resetBtn.addEventListener("click", () => {
+            keywordInput.value = "";
+            languageSelect.value = "";
+            sampleSizeInput.value = "25";
+            clearNotice();
+            showNotice("Filters reset.", "success");
+        });
+
+        // ====================================================================
+        // NLP CONNECTOR JAVASCRIPT
+        // ====================================================================
+
+        const NLP_BASE = "/api/nlp/";
+
+        // NLP elements
+        const nlpCollectionSelect = document.getElementById("nlpCollectionSelect");
+        const nlpTextField        = document.getElementById("nlpTextField");
+        const nlpTaskSelect       = document.getElementById("nlpTaskSelect");
+        const nlpLimit            = document.getElementById("nlpLimit");
+        const nlpRunBtn           = document.getElementById("nlpRunBtn");
+        const nlpExportBtn        = document.getElementById("nlpExportBtn");
+        const nlpCapBtn           = document.getElementById("nlpCapBtn");
+        const nlpLoading          = document.getElementById("nlpLoading");
+        const nlpNotice           = document.getElementById("nlpNotice");
+        const nlpResultsWrap      = document.getElementById("nlpResultsWrap");
+        const nlpResultBadge      = document.getElementById("nlpResultBadge");
+        const nlpResultMeta       = document.getElementById("nlpResultMeta");
+        const nlpTableWrap        = document.getElementById("nlpTableWrap");
+        const nlpTableHead        = document.getElementById("nlpTableHead");
+        const nlpTableBody        = document.getElementById("nlpTableBody");
+        const nlpCorpusResult     = document.getElementById("nlpCorpusResult");
+        const nlpRawResponse      = document.getElementById("nlpRawResponse");
+        const nlpFieldChips       = document.getElementById("nlpFieldChips");
+        const nlpStatusTag        = document.getElementById("nlpStatusTag");
+        const nlpTaskOptions      = document.getElementById("nlpTaskOptions");
+
+        let nlpLatestResult = null;
+
+        // Helper — show NLP notice
+        function showNlpNotice(msg, type = "error") {
+            nlpNotice.textContent = msg;
+            nlpNotice.className = `notice ${type}`;
+        }
+        function clearNlpNotice() {
+            nlpNotice.textContent = "";
+            nlpNotice.className = "notice";
+        }
+
+        // Sync NLP collection selector whenever dataset list updates
+        function syncNlpCollections() {
+            if (!currentConnectionId) {
+                nlpCollectionSelect.innerHTML = '<option value="">Connect a MongoDB URL above first</option>';
+                nlpCollectionSelect.disabled = true;
+                nlpTextField.disabled = true;
+                nlpTaskSelect.disabled = true;
+                nlpLimit.disabled = true;
+                nlpRunBtn.disabled = true;
+                nlpStatusTag.textContent = "Requires MongoDB Connection";
+                nlpStatusTag.style.background = "";
+                return;
+            }
+
+            // Build option list from activeDatasets (already populated by main connector)
+            const grouped = {};
+            activeDatasets.forEach(d => {
+                grouped[d.database] = grouped[d.database] || [];
+                grouped[d.database].push(d.collection);
+            });
+
+            nlpCollectionSelect.innerHTML = '<option value="">Select a collection...</option>';
+            Object.entries(grouped).forEach(([db, cols]) => {
+                const grp = document.createElement("optgroup");
+                grp.label = db;
+                cols.forEach(col => {
+                    const opt = document.createElement("option");
+                    opt.value = `${db}::${col}`;
+                    opt.textContent = col;
+                    grp.appendChild(opt);
+                });
+                nlpCollectionSelect.appendChild(grp);
+            });
+
+            nlpCollectionSelect.disabled = false;
+            nlpTextField.disabled = false;
+            nlpTaskSelect.disabled = false;
+            nlpLimit.disabled = false;
+            nlpStatusTag.textContent = "Ready";
+            nlpStatusTag.style.background = "#dcfce7";
+            nlpStatusTag.style.color = "#15803d";
+        }
+
+        // When NLP collection changes — populate field chips from schema
+        nlpCollectionSelect.addEventListener("change", async () => {
+            nlpFieldChips.innerHTML = "";
+            const val = nlpCollectionSelect.value;
+            if (!val || !currentConnectionId) return;
+
+            const [db, col] = val.split("::");
+            try {
+                const resp = await fetch(
+                    `${API_BASE}${db}/${col}/schema/?connection_id=${encodeURIComponent(currentConnectionId)}`
+                );
+                const data = await resp.json();
+                if (data.success && data.fields) {
+                    data.fields.forEach(f => {
+                        const chip = document.createElement("button");
+                        chip.type = "button";
+                        chip.className = "schema-chip";
+                        chip.textContent = f;
+                        chip.title = `Use field: ${f}`;
+                        chip.addEventListener("click", () => {
+                            nlpTextField.value = f;
+                        });
+                        nlpFieldChips.appendChild(chip);
+                    });
+                }
+            } catch (e) { /* silent */ }
+        });
+
+        // Show/hide task-specific options
+        nlpTaskSelect.addEventListener("change", () => {
+            const task = nlpTaskSelect.value;
+            document.querySelectorAll("#nlpTaskOptions > div").forEach(d => d.style.display = "none");
+
+            if (["classification", "deduplication", "keywords"].includes(task)) {
+                nlpTaskOptions.style.display = "block";
+                const optEl = document.getElementById("opt" + task.charAt(0).toUpperCase() + task.slice(1));
+                if (optEl) optEl.style.display = "block";
+            } else {
+                nlpTaskOptions.style.display = "none";
+            }
+
+            nlpRunBtn.disabled = !task || !currentConnectionId;
+        });
+
+        // Run NLP task
+        nlpRunBtn.addEventListener("click", async () => {
+            clearNlpNotice();
+            const val = nlpCollectionSelect.value;
+            const task = nlpTaskSelect.value;
+            const textField = nlpTextField.value.trim();
+            const limit = parseInt(nlpLimit.value) || 50;
+
+            if (!currentConnectionId) return showNlpNotice("No MongoDB connection active.");
+            if (!val) return showNlpNotice("Select a collection first.");
+            if (!task) return showNlpNotice("Select an NLP task first.");
+            if (!textField) return showNlpNotice("Enter the text field name (e.g. 'title' or 'raw_payload.text').");
+
+            const [db, col] = val.split("::");
+
+            // Build options
+            const options = {};
+            if (task === "classification") {
+                const raw = document.getElementById("nlpCandidateLabels").value;
+                options.candidate_labels = raw.split(",").map(s => s.trim()).filter(Boolean);
+            }
+            if (task === "deduplication") {
+                options.similarity_threshold = parseFloat(document.getElementById("nlpSimThreshold").value) || 0.85;
+            }
+            if (task === "keywords") {
+                options.top_n = parseInt(document.getElementById("nlpTopN").value) || 10;
+            }
+
+            const payload = {
+                connection_id: currentConnectionId,
+                database: db,
+                collection: col,
+                text_field: textField,
+                task: task,
+                limit: limit,
+                options: options,
+            };
+
+            nlpRunBtn.disabled = true;
+            nlpLoading.style.display = "block";
+            nlpResultsWrap.style.display = "none";
+            nlpExportBtn.disabled = true;
+
+            const t0 = Date.now();
+            try {
+                const resp = await fetch(`${NLP_BASE}run/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                const data = await resp.json();
+                const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+
+                nlpLatestResult = data;
+                nlpRawResponse.textContent = JSON.stringify(data, null, 2);
+
+                if (!data.success) {
+                    showNlpNotice(data.error || "NLP task failed.", "error");
+                } else {
+                    renderNlpResults(data, elapsed);
+                    nlpExportBtn.disabled = false;
+                }
+            } catch (err) {
+                showNlpNotice(`Network error: ${err.message}`, "error");
+            } finally {
+                nlpRunBtn.disabled = false;
+                nlpLoading.style.display = "none";
+            }
+        });
+
+        function renderNlpResults(data, elapsed) {
+            nlpResultsWrap.style.display = "block";
+
+            // Badge + meta
+            nlpResultBadge.textContent = `✓ ${data.task.replace(/_/g," ")} complete`;
+            nlpResultMeta.textContent =
+                `${data.processed_documents} docs processed | ${data.skipped_documents} skipped | Method: ${data.method} | ${elapsed}s`;
+
+            // Reset panels
+            nlpTableWrap.style.display = "none";
+            nlpCorpusResult.style.display = "none";
+            nlpTableHead.innerHTML = "";
+            nlpTableBody.innerHTML = "";
+
+            if (data.output_type === "corpus") {
+                renderCorpusResult(data.results);
+            } else {
+                renderPerDocTable(data.task, data.results || []);
+            }
+        }
+
+        function renderCorpusResult(results) {
+            nlpCorpusResult.style.display = "block";
+
+            if (results.task === "deduplication") {
+                const r = results;
+                nlpCorpusResult.innerHTML = `
+                    <div class="stats" style="grid-template-columns:repeat(4,1fr); margin:0 0 16px;">
+                        <article class="stat-card"><div class="stat-heading"><span class="stat-label">Total Docs</span></div><div class="stat-value">${r.total_docs}</div></article>
+                        <article class="stat-card"><div class="stat-heading"><span class="stat-label">Unique</span></div><div class="stat-value" style="color:var(--success)">${r.unique_count}</div></article>
+                        <article class="stat-card"><div class="stat-heading"><span class="stat-label">Duplicates</span></div><div class="stat-value" style="color:var(--danger)">${r.duplicate_count}</div></article>
+                        <article class="stat-card"><div class="stat-heading"><span class="stat-label">Threshold</span></div><div class="stat-value">${r.similarity_threshold}</div></article>
+                    </div>
+                    ${r.exact_duplicate_groups && r.exact_duplicate_groups.length ?
+                        `<div style="margin-bottom:12px;"><strong>Exact Duplicate Groups (${r.exact_duplicate_groups.length}):</strong>
+                         <ul style="font-size:12px;">${r.exact_duplicate_groups.map(g => `<li>Canonical: ${g.canonical} → Duplicates: ${g.duplicates.join(", ")}</li>`).join("")}</ul></div>` : ""}
+                    ${r.near_duplicate_groups && r.near_duplicate_groups.length ?
+                        `<div><strong>Near-Duplicate Groups (${r.near_duplicate_groups.length}, threshold ≥${r.similarity_threshold}):</strong>
+                         <ul style="font-size:12px;">${r.near_duplicate_groups.map(g => `<li>Canonical: ${g.canonical} → Duplicates: ${g.duplicates.join(", ")} (avg sim: ${g.avg_similarity})</li>`).join("")}</ul></div>` : ""}
+                `;
+            } else {
+                nlpCorpusResult.innerHTML = `<pre>${JSON.stringify(results, null, 2)}</pre>`;
+            }
+        }
+
+        function renderPerDocTable(task, results) {
+            if (!results.length) {
+                nlpTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted)">No results returned.</td></tr>';
+                nlpTableWrap.style.display = "block";
+                return;
+            }
+
+            // Build columns based on task
+            let columns = [];
+            if (task === "sentiment") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "label", label: "Sentiment" },
+                    { key: "score", label: "Confidence" },
+                ];
+            } else if (task === "ner") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "entities", label: "Entities" },
+                    { key: "entity_count", label: "Count" },
+                ];
+            } else if (task === "keywords") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "keywords", label: "Keywords" },
+                    { key: "method", label: "Method" },
+                ];
+            } else if (task === "summarization") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "summary", label: "Summary" },
+                    { key: "method", label: "Method" },
+                    { key: "original_length", label: "Orig Chars" },
+                ];
+            } else if (task === "classification") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "top_label", label: "Category" },
+                    { key: "method", label: "Method" },
+                ];
+            } else if (task === "language_detection") {
+                columns = [
+                    { key: "#", label: "#" },
+                    { key: "text_preview", label: "Text Preview" },
+                    { key: "language_name", label: "Language" },
+                    { key: "language_code", label: "Code" },
+                    { key: "confidence", label: "Confidence" },
+                ];
+            } else {
+                columns = [{ key: "#", label: "#" }, ...Object.keys(results[0]).map(k => ({ key: k, label: k }))];
+            }
+
+            // Header
+            const tr = document.createElement("tr");
+            columns.forEach(c => {
+                const th = document.createElement("th");
+                th.textContent = c.label;
+                tr.appendChild(th);
+            });
+            nlpTableHead.appendChild(tr);
+
+            // Rows
+            results.slice(0, 500).forEach((r, i) => {
+                const row = document.createElement("tr");
+                columns.forEach(c => {
+                    const td = document.createElement("td");
+                    if (c.key === "#") {
+                        td.textContent = i + 1;
+                        td.style.color = "var(--muted)";
+                        td.style.fontSize = "11px";
+                    } else if (c.key === "label") {
+                        const lbl = (r.label || "").toLowerCase();
+                        td.innerHTML = `<span class="badge ${lbl === "positive" ? "badge-success" : "badge-danger"}">${lbl}</span>`;
+                    } else if (c.key === "top_label") {
+                        td.innerHTML = `<span class="badge badge-neutral" style="text-transform:capitalize">${r.top_label || "—"}</span>`;
+                    } else if (c.key === "entities") {
+                        const ents = r.entities || {};
+                        td.innerHTML = Object.entries(ents).map(
+                            ([t, ws]) => `<span class="schema-chip" title="${t}">${t}: ${ws.slice(0,3).join(", ")}${ws.length > 3 ? "…" : ""}</span>`
+                        ).join(" ");
+                    } else if (c.key === "keywords") {
+                        const kws = (r.keywords || []).slice(0, 8);
+                        td.innerHTML = kws.map(
+                            kw => `<span class="schema-chip">${kw.word} <small style="color:var(--muted)">${kw.score}</small></span>`
+                        ).join(" ");
+                    } else if (c.key === "language_name") {
+                        td.innerHTML = `<span class="badge badge-neutral">${r.language_name || "—"}</span>`;
+                    } else if (c.key === "score" || c.key === "confidence") {
+                        const val = r[c.key];
+                        const pct = Math.round((val || 0) * 100);
+                        td.innerHTML = `<span style="font-weight:600; color:${pct >= 70 ? "var(--success)" : "var(--muted)"}">${pct}%</span>`;
+                    } else if (c.key === "text_preview" || c.key === "summary") {
+                        td.textContent = (r[c.key] || "—").slice(0, 200);
+                        td.style.maxWidth = "320px";
+                        td.style.fontSize = "12px";
+                        td.style.lineHeight = "1.5";
+                        td.style.overflowWrap = "anywhere";
+                    } else {
+                        const v = r[c.key];
+                        td.textContent = typeof v === "object" ? JSON.stringify(v).slice(0, 80) : (v ?? "—");
+                    }
+                    row.appendChild(td);
+                });
+                nlpTableBody.appendChild(row);
+            });
+
+            nlpTableWrap.style.display = "block";
+        }
+
+        // Export NLP results
+        nlpExportBtn.addEventListener("click", () => {
+            if (!nlpLatestResult) return;
+            const blob = new Blob([JSON.stringify(nlpLatestResult, null, 2)], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `nlp_${nlpLatestResult.task}_${Date.now()}.json`;
+            a.click();
+            a.remove();
+        });
+
+        // Check capabilities
+        nlpCapBtn.addEventListener("click", async () => {
+            try {
+                const resp = await fetch(`${NLP_BASE}capabilities/`);
+                const data = await resp.json();
+                nlpRawResponse.textContent = JSON.stringify(data, null, 2);
+                nlpResultsWrap.style.display = "block";
+                nlpResultBadge.textContent = data.transformers_ready ? "✓ Transformers Ready" : "⚠ Transformers Unavailable (fallback mode)";
+                nlpResultMeta.textContent = `Libraries: ${Object.entries(data.libraries || {}).map(([k,v]) => `${k}=${v || "✗"}`).join(" | ")}`;
+            } catch (e) {
+                showNlpNotice(`Failed: ${e.message}`, "error");
+            }
+        });
+
+        // Hook into existing connect/disconnect flow to sync NLP panel
+        const _origOnConnected = typeof onConnected !== "undefined" ? onConnected : null;
+
+        // Observe connection state changes via MutationObserver on the connection status element
+        const nlpObserver = new MutationObserver(() => {
+            if (currentConnectionId) {
+                syncNlpCollections();
+            }
+        });
+        nlpObserver.observe(document.getElementById("connectionStatus"), { childList: true, subtree: true, attributes: true });
+
+        // Also patch the disconnect flow
+        const _origDisconnect = disconnectBtn.onclick;
+        disconnectBtn.addEventListener("click", () => {
+            setTimeout(syncNlpCollections, 200);
+        });
+
+        // Patch dataset load to also sync NLP on successful dataset list
+        const _origDatasetLoad = typeof loadDatasets !== "undefined" ? loadDatasets : null;
+
+    </script>
+</body>
+</html>

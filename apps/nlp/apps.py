@@ -1,0 +1,10 @@
+"""App configuration for the NLP connector app."""
+
+from django.apps import AppConfig
+
+
+class NlpConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.nlp"
+    label = "nlp"
+    verbose_name = "NLP Connector"
