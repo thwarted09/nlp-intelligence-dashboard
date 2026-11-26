@@ -224,59 +224,74 @@ export async function executePipelineJob(
   addLog('INFO', `Active Pipeline: '${pipeline.name}' (v${pipeline.version}) with ${activeStages.length} active stages`);
 
   // Try executing via live backend first
-  try {
-    const res = await fetch(`${currentConfig.baseUrl}/api/pipeline/run`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        documents,
-        pipeline,
-        targetTopic: 'Regional Security & Geopolitical Stability',
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
+  if (currentConfig.mode === 'live') {
+    try {
+      const res = await fetch(`${currentConfig.baseUrl}/api/pipeline/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documents,
+          pipeline,
+          targetTopic: 'Regional Security & Geopolitical Stability',
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.output) {
-        addLog('SUCCESS', `Backend completed inference across all ${documents.length} MongoDB records.`);
-        const execution: JobExecution = {
-          jobId,
-          datasetId: collectionName,
-          datasetName,
-          pipelineId: pipeline.id,
-          pipelineName: pipeline.name,
-          sampleSize: documents.length,
-          status: 'COMPLETED',
-          startTime,
-          endTime: new Date().toISOString(),
-          progress: {
-            totalDocs: documents.length,
-            processedDocs: documents.length,
-            currentStageIndex: activeStages.length,
-            totalStages: activeStages.length,
-            currentStageName: 'COMPLETED',
-            percent: 100,
-            docsPerSecond: 12.4,
-            estimatedRemainingSec: 0,
-            elapsedSec: 1,
-            errorsCount: 0,
-          },
-          logs,
-          resultSummary: {
-            avgLatencyPerDocMs: data.output.stats?.avgLatencyMs || 50,
-            totalTokensProcessed: documents.reduce((acc, d) => acc + (d.metadata.rawTokens || 50), 0),
-            entitiesExtractedCount: data.output.records.reduce((acc: number, r: any) => acc + (r.entities?.length || 0), 0),
-            dominantSentiment: data.output.stats?.sentimentDistribution?.positive >= data.output.stats?.sentimentDistribution?.negative ? 'POSITIVE' : 'NEGATIVE',
-            lowConfidenceCount: 0,
-            qualityScorePercent: 98,
-          },
-        };
-        return { execution, output: data.output };
+      if (!res.ok) {
+        let errMessage = `Backend returned HTTP ${res.status}`;
+        try {
+          const errData = await res.json();
+          if (errData.detail) errMessage = errData.detail;
+          else if (errData.message) errMessage = errData.message;
+        } catch (_) {}
+        addLog('ERROR', `Inference request failed: ${errMessage}`);
+        throw new Error(errMessage);
       }
+
+      const data = await res.json();
+      if (!data.output) {
+        addLog('ERROR', 'Backend returned an empty or invalid response structure');
+        throw new Error('Invalid backend response: missing output payload');
+      }
+
+      addLog('SUCCESS', `Backend completed inference across all ${documents.length} MongoDB records.`);
+      const execution: JobExecution = {
+        jobId,
+        datasetId: collectionName,
+        datasetName,
+        pipelineId: pipeline.id,
+        pipelineName: pipeline.name,
+        sampleSize: documents.length,
+        status: 'COMPLETED',
+        startTime,
+        endTime: new Date().toISOString(),
+        progress: {
+          totalDocs: documents.length,
+          processedDocs: documents.length,
+          currentStageIndex: activeStages.length,
+          totalStages: activeStages.length,
+          currentStageName: 'COMPLETED',
+          percent: 100,
+          docsPerSecond: 12.4,
+          estimatedRemainingSec: 0,
+          elapsedSec: 1,
+          errorsCount: 0,
+        },
+        logs,
+        resultSummary: {
+          avgLatencyPerDocMs: data.output.stats?.avgLatencyMs || 50,
+          totalTokensProcessed: documents.reduce((acc, d) => acc + (d.metadata.rawTokens || 50), 0),
+          entitiesExtractedCount: data.output.records.reduce((acc: number, r: any) => acc + (r.entities?.length || 0), 0),
+          dominantSentiment: data.output.stats?.sentimentDistribution?.positive >= data.output.stats?.sentimentDistribution?.negative ? 'POSITIVE' : 'NEGATIVE',
+          lowConfidenceCount: 0,
+          qualityScorePercent: 98,
+        },
+      };
+      return { execution, output: data.output };
+    } catch (err: any) {
+      addLog('ERROR', `Backend connection failure: ${err.message || 'Cannot reach API at ' + currentConfig.baseUrl}`);
+      throw new Error(`NLP Backend Error: ${err.message || 'Server unreachable'}. Ensure the backend service is running on ${currentConfig.baseUrl}.`);
     }
-  } catch (err) {
-    addLog('WARN', 'Live backend endpoint unavailable, executing client-side simulation engine...');
   }
 
   // Client-side execution simulation
@@ -327,8 +342,7 @@ export async function executePipelineJob(
     }
 
     totalLatency += r.processingTimeMs;
-    totalConf += r.overallConfidence;
-    if (r.integrity.flagged) flaggedCount++;
+    if (r.integrity?.flagged) flaggedCount++;
   }
 
   const topEntities = Array.from(entityMap.entries())
@@ -354,7 +368,6 @@ export async function executePipelineJob(
       },
       topEntities,
       topTopics,
-      avgConfidence: Number((totalConf / Math.max(1, results.length)).toFixed(2)),
       flaggedCount,
       avgLatencyMs: Math.round(totalLatency / Math.max(1, results.length)),
     },
@@ -388,7 +401,7 @@ export async function executePipelineJob(
       totalTokensProcessed: documents.reduce((acc, d) => acc + (d.metadata.rawTokens || 50), 0),
       entitiesExtractedCount: results.reduce((acc, r) => acc + r.entities.length, 0),
       dominantSentiment: pos >= neg && pos >= neu ? 'POSITIVE' : neg >= neu ? 'NEGATIVE' : 'NEUTRAL',
-      lowConfidenceCount: results.filter(r => r.overallConfidence < 0.85).length,
+      lowConfidenceCount: 0,
       qualityScorePercent: 96,
     },
   };

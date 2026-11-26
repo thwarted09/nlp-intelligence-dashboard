@@ -2,30 +2,49 @@ import { MongoDocument } from './dataset';
 
 export interface ExtractedEntity {
   text: string;
-  category: 'PERSON' | 'ORG' | 'GPE' | 'NORP' | 'EVENT' | 'PRODUCT' | 'DATE' | 'FACILITY' | 'THREAT_ACTOR';
+  label: string; // 'PERSON' | 'ORGANIZATION' | 'LOCATION' | 'PRODUCT' | 'EVENT' | string
+  source_label: string; // Original model label (e.g. 'GPE', 'LOC', 'ORG', etc.)
   start: number;
   end: number;
-  confidence: number;
-  salience?: number;
+  category?: string; // Backward compatibility alias matching label
+}
+
+export interface VaderSentiment {
+  pos: number;
+  neg: number;
+  neu: number;
+  compound: number;
+  label: 'positive' | 'negative' | 'neutral';
 }
 
 export interface PerceptionResult {
   sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
-  polarityScore: number; // -1.0 to 1.0
-  subjectivityScore: number; // 0.0 to 1.0
-  stance: {
-    target: string;
-    label: 'SUPPORT' | 'OPPOSE' | 'NEUTRAL';
-    confidence: number;
-  };
-  emotions: {
+  polarityScore: number; // -1.0 to 1.0 (VADER compound)
+  subjectivityScore: number; // 0.0 to 1.0 (1.0 - neu)
+  vader: VaderSentiment;
+  emotions?: {
     anger: number;
     fear: number;
-    trust: number;
+    trust?: number;
     joy: number;
     sadness: number;
     surprise: number;
+    disgust?: number;
   };
+}
+
+export interface ExtractiveSummaryBullet {
+  sentence_idx: number;
+  text: string;
+  start: number;
+  end: number;
+}
+
+export interface ExtractiveSummary {
+  type: 'extractive';
+  bulletPoints: string[];
+  bulletsWithTraceability: ExtractiveSummaryBullet[];
+  tldr: string;
 }
 
 export interface IntelligenceResultDoc {
@@ -35,24 +54,31 @@ export interface IntelligenceResultDoc {
   language: string;
   entities: ExtractedEntity[];
   perception: PerceptionResult;
-  topics: {
+  topics?: {
     topic: string;
     confidence: number;
   }[];
+  domain?: {
+    domain: string;
+    score: number;
+    candidates?: Record<string, number>;
+  };
+  category?: {
+    category: string;
+    parent_domain: string;
+    score: number;
+    candidates?: Record<string, number>;
+  };
   keyphrases: {
     phrase: string;
-    score: number;
+    score?: number;
   }[];
-  summary: {
-    bulletPoints: string[];
-    tldr: string;
-  };
-  integrity: {
-    toxicityScore: number; // 0 to 1
-    propagandaProbability: number; // 0 to 1
+  summary: ExtractiveSummary;
+  integrity?: {
+    toxicityScore: number;
+    propagandaProbability: number;
     flagged: boolean;
   };
-  overallConfidence: number;
   processingTimeMs: number;
   humanValidation?: {
     status: 'pending' | 'verified' | 'flagged' | 'corrected';
@@ -67,6 +93,7 @@ export interface PipelineOutputData {
   generatedAt: string;
   totalRecords: number;
   records: IntelligenceResultDoc[];
+  modelsUsed?: Record<string, string>;
   stats: {
     sentimentDistribution: {
       positive: number;
@@ -75,7 +102,6 @@ export interface PipelineOutputData {
     };
     topEntities: { name: string; category: string; count: number }[];
     topTopics: { name: string; count: number }[];
-    avgConfidence: number;
     flaggedCount: number;
     avgLatencyMs: number;
   };

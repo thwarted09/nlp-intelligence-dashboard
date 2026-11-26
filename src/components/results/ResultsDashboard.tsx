@@ -94,16 +94,18 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   };
 
   const handleExportCSV = () => {
-    const headers = ['DocID', 'Source', 'Sentiment', 'PolarityScore', 'Confidence', 'EntitiesCount', 'Flagged', 'TextSnippet'];
+    const headers = ['DocID', 'Source', 'Sentiment', 'CompoundScore', 'VaderPos', 'VaderNeu', 'VaderNeg', 'EntitiesCount', 'SitreBullet', 'TextSnippet'];
     const rows = records.map(r => [
       r.docId,
-      `"${r.originalDoc.source.replace(/"/g, '""')}"`,
+      `"${(r.originalDoc?.source || '').replace(/"/g, '""')}"`,
       r.perception.sentiment,
       r.perception.polarityScore,
-      r.overallConfidence,
+      r.perception.vader?.pos ?? 0,
+      r.perception.vader?.neu ?? 0,
+      r.perception.vader?.neg ?? 0,
       r.entities.length,
-      r.integrity.flagged ? 'YES' : 'NO',
-      `"${r.originalDoc.text.slice(0, 100).replace(/"/g, '""')}..."`,
+      `"${((r.summary?.bulletPoints && r.summary.bulletPoints[0]) || '').replace(/"/g, '""')}"`,
+      `"${(r.originalDoc?.text || '').slice(0, 100).replace(/"/g, '""')}..."`,
     ]);
 
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -167,11 +169,11 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5">
-          <span className="text-[10px] font-mono uppercase text-slate-400">Avg Confidence</span>
+          <span className="text-[10px] font-mono uppercase text-slate-400">Total Entities</span>
           <div className="mt-1 text-xl font-black text-cyan-400 font-mono">
-            {(data.stats.avgConfidence * 100).toFixed(0)}%
+            {records.reduce((acc, r) => acc + (r.entities?.length || 0), 0)}
           </div>
-          <span className="text-[10px] text-slate-500 font-mono">Calibrated F1</span>
+          <span className="text-[10px] text-slate-500 font-mono">spaCy extraction</span>
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5">
@@ -316,8 +318,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
               <tr>
                 <th className="py-3 px-4">Doc & Source</th>
                 <th className="py-3 px-4">Analyzed Intelligence Content</th>
-                <th className="py-3 px-4 w-32">Perception</th>
-                <th className="py-3 px-4 w-28">Confidence</th>
+                <th className="py-3 px-4 w-32">VADER Polarity</th>
+                <th className="py-3 px-4 w-32">VADER Breakdown</th>
                 <th className="py-3 px-4 w-28">Validation</th>
                 <th className="py-3 px-4 w-24 text-right">Action</th>
               </tr>
@@ -370,18 +372,12 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                     </div>
                   </td>
 
-                  {/* Confidence Bar */}
-                  <td className="py-3.5 px-4 font-mono text-[11px]">
-                    <div className="flex items-center space-x-1.5">
-                      <div className="h-1.5 w-12 rounded-full bg-slate-800 overflow-hidden">
-                        <div
-                          className="h-full bg-cyan-400 rounded-full"
-                          style={{ width: `${item.overallConfidence * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-slate-300">
-                        {(item.overallConfidence * 100).toFixed(0)}%
-                      </span>
+                  {/* VADER Intensity Breakdown */}
+                  <td className="py-3.5 px-4 font-mono text-[10px]">
+                    <div className="flex flex-col space-y-0.5">
+                      <span className="text-emerald-400">Pos: {item.perception.vader?.pos ? (item.perception.vader.pos * 100).toFixed(0) : '0'}%</span>
+                      <span className="text-slate-400">Neu: {item.perception.vader?.neu ? (item.perception.vader.neu * 100).toFixed(0) : '0'}%</span>
+                      <span className="text-rose-400">Neg: {item.perception.vader?.neg ? (item.perception.vader.neg * 100).toFixed(0) : '0'}%</span>
                     </div>
                   </td>
 

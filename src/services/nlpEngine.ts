@@ -1,6 +1,6 @@
 import { MongoDocument } from '../types/dataset';
 import { PipelineWorkflow } from '../types/nlp';
-import { IntelligenceResultDoc, ExtractedEntity, PerceptionResult } from '../types/results';
+import { IntelligenceResultDoc, ExtractedEntity, PerceptionResult, ExtractiveSummary } from '../types/results';
 import { LogEntry } from '../types/job';
 
 // Heuristic entity database for realistic extraction
@@ -42,7 +42,7 @@ const KNOWN_ENTITIES: { text: string; category: ExtractedEntity['category'] }[] 
   { text: 'Red Cross', category: 'ORG' },
 ];
 
-export function extractEntitiesFromText(text: string, threshold = 0.75): ExtractedEntity[] {
+export function extractEntitiesFromText(text: string): ExtractedEntity[] {
   const entities: ExtractedEntity[] = [];
   
   // Find known entities
@@ -50,13 +50,14 @@ export function extractEntitiesFromText(text: string, threshold = 0.75): Extract
     const regex = new RegExp(`\\b${item.text}\\b`, 'gi');
     let match;
     while ((match = regex.exec(text)) !== null) {
+      const stdLabel = item.category === 'GPE' || (item.category as string) === 'LOC' ? 'LOCATION' : item.category === 'ORG' ? 'ORGANIZATION' : item.category;
       entities.push({
         text: match[0],
-        category: item.category,
+        label: stdLabel,
+        source_label: item.category,
+        category: stdLabel,
         start: match.index,
         end: match.index + match[0].length,
-        confidence: Number((0.82 + Math.random() * 0.16).toFixed(2)),
-        salience: Number((0.6 + Math.random() * 0.38).toFixed(2)),
       });
     }
   }
@@ -68,16 +69,16 @@ export function extractEntitiesFromText(text: string, threshold = 0.75): Extract
     if (!entities.some(e => e.start === orgMatch!.index)) {
       entities.push({
         text: orgMatch[0],
-        category: 'ORG',
+        label: 'ORGANIZATION',
+        source_label: 'ORG',
+        category: 'ORGANIZATION',
         start: orgMatch.index,
         end: orgMatch.index + orgMatch[0].length,
-        confidence: Number((0.76 + Math.random() * 0.18).toFixed(2)),
-        salience: 0.7,
       });
     }
   }
 
-  return entities.filter(e => e.confidence >= threshold);
+  return entities;
 }
 
 export function computePerception(text: string, title = ''): PerceptionResult {
@@ -98,11 +99,9 @@ export function computePerception(text: string, title = ''): PerceptionResult {
   
   score = Math.max(-1, Math.min(1, score + (Math.random() - 0.5) * 0.15));
   
-  const sentiment = score > 0.18 ? 'POSITIVE' : score < -0.18 ? 'NEGATIVE' : 'NEUTRAL';
+  const compound = Number(score.toFixed(4));
+  const sentiment = compound >= 0.05 ? 'POSITIVE' : compound <= -0.05 ? 'NEGATIVE' : 'NEUTRAL';
   const subjectivity = Number((0.25 + Math.abs(score) * 0.5 + Math.random() * 0.2).toFixed(2));
-  
-  // Stance
-  const stanceLabel = score > 0.25 ? 'SUPPORT' : score < -0.2 ? 'OPPOSE' : 'NEUTRAL';
   
   // Emotion spectrum
   const isThreatOrPanic = combined.includes('urgent') || combined.includes('leak') || combined.includes('attack') || combined.includes('blackout');
@@ -115,39 +114,47 @@ export function computePerception(text: string, title = ''): PerceptionResult {
   const sadness = combined.includes('casualty') || combined.includes('flood') ? 0.75 : Number((0.08 + Math.random() * 0.2).toFixed(2));
   const surprise = combined.includes('urgent') || combined.includes('leak') ? 0.8 : Number((0.15 + Math.random() * 0.25).toFixed(2));
 
+  const posVal = Math.max(0, compound > 0 ? compound : 0);
+  const negVal = Math.max(0, compound < 0 ? Math.abs(compound) : 0);
+  const neuVal = Math.max(0, 1 - (posVal + negVal));
+
   return {
     sentiment,
-    polarityScore: Number(score.toFixed(3)),
+    polarityScore: compound,
     subjectivityScore: subjectivity,
-    stance: {
-      target: 'Regional Stability & Security Protocol',
-      label: stanceLabel,
-      confidence: Number((0.72 + Math.random() * 0.24).toFixed(2)),
+    vader: {
+      pos: Number(posVal.toFixed(4)),
+      neg: Number(negVal.toFixed(4)),
+      neu: Number(neuVal.toFixed(4)),
+      compound,
+      label: compound >= 0.05 ? 'positive' : compound <= -0.05 ? 'negative' : 'neutral',
     },
     emotions: { anger, fear, trust, joy, sadness, surprise },
   };
 }
 
-export function extractSummary(text: string, title = ''): { bulletPoints: string[]; tldr: string } {
+export function extractSummary(text: string, title = ''): ExtractiveSummary {
   const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 10);
   
-  let bulletPoints: string[] = [];
-  if (sentences.length >= 3) {
-    bulletPoints = [
-      sentences[0].trim(),
-      sentences[Math.floor(sentences.length / 2)].trim(),
-      sentences[sentences.length - 1].trim(),
-    ];
-  } else if (sentences.length > 0) {
-    bulletPoints = sentences.slice(0, 3);
-  } else {
-    bulletPoints = ['Key strategic developments reported in operational theatre.'];
-  }
+  const bulletPoints: string[] = sentences.length >= 3
+    ? [sentences[0].trim(), sentences[Math.floor(sentences.length / 2)].trim(), sentences[sentences.length - 1].trim()]
+    : sentences.length > 0
+    ? sentences.slice(0, 3)
+    : ['Key strategic developments reported in operational intercept.'];
+
+  const bulletsWithTraceability = bulletPoints.map((s, idx) => ({
+    sentence_idx: idx,
+    text: s,
+    start: text.indexOf(s) >= 0 ? text.indexOf(s) : 0,
+    end: text.indexOf(s) >= 0 ? text.indexOf(s) + s.length : s.length,
+  }));
 
   const tldr = title ? `${title}: ${sentences[0] || text.slice(0, 100)}...` : sentences[0] || text.slice(0, 120);
 
   return {
+    type: 'extractive',
     bulletPoints,
+    bulletsWithTraceability,
     tldr,
   };
 }
@@ -159,7 +166,7 @@ export function processSingleDocument(
   const enabledTaskIds = new Set(pipeline.stages.filter(s => s.enabled).map(s => s.taskId));
   
   const entities = enabledTaskIds.has('ner')
-    ? extractEntitiesFromText(doc.text, 0.7)
+    ? extractEntitiesFromText(doc.text)
     : [];
   
   const perception = enabledTaskIds.has('sentiment_perception') || enabledTaskIds.has('emotion_analysis')
@@ -168,13 +175,13 @@ export function processSingleDocument(
         sentiment: 'NEUTRAL' as const,
         polarityScore: 0,
         subjectivityScore: 0.1,
-        stance: { target: 'General', label: 'NEUTRAL' as const, confidence: 0.5 },
+        vader: { pos: 0, neg: 0, neu: 1.0, compound: 0, label: 'neutral' as const },
         emotions: { anger: 0.1, fear: 0.1, trust: 0.5, joy: 0.2, sadness: 0.1, surprise: 0.1 },
       };
 
   const summary = enabledTaskIds.has('summarization')
     ? extractSummary(doc.text, doc.title)
-    : { bulletPoints: [], tldr: doc.text.slice(0, 100) };
+    : { type: 'extractive' as const, bulletPoints: [], bulletsWithTraceability: [], tldr: doc.text.slice(0, 100) };
 
   const isHighToxicity = doc.sourceType === 'telegram' || doc.text.toLowerCase().includes('leak') || doc.text.toLowerCase().includes('sabotage');
   const toxicityScore = isHighToxicity ? Number((0.65 + Math.random() * 0.28).toFixed(2)) : Number((0.04 + Math.random() * 0.15).toFixed(2));
@@ -209,10 +216,9 @@ export function processSingleDocument(
       propagandaProbability: propagandaProb,
       flagged: toxicityScore > 0.6 || propagandaProb > 0.75,
     },
-    overallConfidence,
     processingTimeMs,
     humanValidation: {
-      status: overallConfidence < 0.85 ? 'flagged' : 'verified',
+      status: 'pending',
     },
   };
 }

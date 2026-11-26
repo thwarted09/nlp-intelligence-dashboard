@@ -295,7 +295,8 @@ def query_documents(req: QueryDataRequest):
 @app.post("/api/pipeline/run")
 def execute_pipeline(req: PipelineRunRequest):
     """
-    Executes real spaCy NER and VADER Sentiment analysis on the chosen MongoDB documents.
+    Executes real spaCy NER, VADER Sentiment analysis, and Extractive SITREP summarization
+    on the chosen MongoDB documents adhering to the Phase A standard schema.
     """
     job_id = f"job-{int(time.time())}"
     documents = req.documents
@@ -316,92 +317,122 @@ def execute_pipeline(req: PipelineRunRequest):
         # Real spaCy document processing
         spacy_doc = nlp(text)
 
-        # 1. Real Named Entity Recognition (spaCy)
+        # -------------------------------------------------------------------------
+        # A1. Real Named Entity Recognition (spaCy en_core_web_sm)
+        # -------------------------------------------------------------------------
         entities = []
         if "ner" in active_task_ids or not active_task_ids:
+            seen_spans = set()
             for ent in spacy_doc.ents:
-                cat = ent.label_
-                # Normalize spaCy labels to standard categories
-                if cat in ["GPE", "LOC"]:
-                    std_cat = "GPE"
-                elif cat in ["ORG"]:
-                    std_cat = "ORG"
-                elif cat in ["PERSON"]:
-                    std_cat = "PERSON"
-                elif cat in ["EVENT"]:
-                    std_cat = "EVENT"
-                elif cat in ["PRODUCT", "WORK_OF_ART"]:
-                    std_cat = "PRODUCT"
-                elif cat in ["DATE", "TIME"]:
-                    std_cat = "DATE"
+                raw_label = ent.label_
+                # Map to required standard schema: GPE & LOC -> LOCATION, ORG -> ORGANIZATION
+                if raw_label in ["GPE", "LOC"]:
+                    std_label = "LOCATION"
+                elif raw_label == "ORG":
+                    std_label = "ORGANIZATION"
+                elif raw_label == "PERSON":
+                    std_label = "PERSON"
+                elif raw_label in ["PRODUCT", "WORK_OF_ART"]:
+                    std_label = "PRODUCT"
+                elif raw_label == "EVENT":
+                    std_label = "EVENT"
                 else:
-                    std_cat = cat
+                    std_label = raw_label
 
-                entities.append({
-                    "text": ent.text,
-                    "category": std_cat,
-                    "start": ent.start_char,
-                    "end": ent.end_char,
-                    "confidence": 0.92,
-                    "salience": 0.80
-                })
-                entity_map[ent.text] = entity_map.get(ent.text, 0) + 1
+                span_key = (ent.start_char, ent.end_char)
+                if span_key not in seen_spans:
+                    seen_spans.add(span_key)
+                    # Adhere strictly to Required Schema (no fabricated confidence scores)
+                    entities.append({
+                        "text": ent.text,
+                        "label": std_label,
+                        "source_label": raw_label,
+                        "start": ent.start_char,
+                        "end": ent.end_char,
+                        "category": std_label  # Backward-compatibility alias
+                    })
+                    entity_map[ent.text] = entity_map.get(ent.text, 0) + 1
 
-        # 2. Real Sentiment & Perception Polarity (VADER)
+        # -------------------------------------------------------------------------
+        # A2. Real VADER Sentiment Analysis
+        # -------------------------------------------------------------------------
         vader_res = sia.polarity_scores(text)
-        compound_score = round(vader_res["compound"], 3)
-        subjectivity = round(1.0 - vader_res["neu"], 2)
+        compound = round(vader_res["compound"], 4)
+        pos = round(vader_res["pos"], 4)
+        neg = round(vader_res["neg"], 4)
+        neu = round(vader_res["neu"], 4)
 
-        if compound_score >= 0.05:
-            sentiment = "POSITIVE"
+        # Standard VADER compound thresholds: >= 0.05 positive, <= -0.05 negative, else neutral
+        if compound >= 0.05:
+            sentiment_label = "positive"
             pos_count += 1
-        elif compound_score <= -0.05:
-            sentiment = "NEGATIVE"
+        elif compound <= -0.05:
+            sentiment_label = "negative"
             neg_count += 1
         else:
-            sentiment = "NEUTRAL"
+            sentiment_label = "neutral"
             neu_count += 1
 
-        # 3. Emotion / Affect Spectrum
-        text_lower = text.lower()
-        is_threat = any(w in text_lower for w in ["leak", "urgent", "freeze", "attack", "panic", "threat", "sabotage", "breach"])
-        
-        fear = round(min(1.0, vader_res["neg"] * 1.5 + (0.5 if is_threat else 0.05)), 2)
-        anger = round(min(1.0, vader_res["neg"] * 1.2 + (0.4 if is_threat else 0.03)), 2)
-        joy = round(min(1.0, vader_res["pos"] * 1.3), 2)
-        trust = round(max(0.1, min(1.0, vader_res["pos"] * 0.8 + vader_res["neu"] * 0.4)), 2)
-        sadness = round(min(1.0, vader_res["neg"] * 0.8), 2)
-        surprise = 0.65 if ("urgent" in text_lower or "leak" in text_lower) else 0.20
+        vader_output = {
+            "pos": pos,
+            "neg": neg,
+            "neu": neu,
+            "compound": compound,
+            "label": sentiment_label
+        }
 
-        # 4. Real Keyphrase Extraction (spaCy noun chunks)
+        # -------------------------------------------------------------------------
+        # A3. Real Extractive SITREP Summarization (Sentence segmentation with traceability)
+        # -------------------------------------------------------------------------
+        sentence_spans = []
+        for idx, sent in enumerate(spacy_doc.sents):
+            s_text = sent.text.strip()
+            if len(s_text) > 10:
+                sentence_spans.append({
+                    "sentence_idx": idx,
+                    "text": s_text,
+                    "start": sent.start_char,
+                    "end": sent.end_char
+                })
+
+        if len(sentence_spans) >= 3:
+            selected_bullets = [sentence_spans[0], sentence_spans[len(sentence_spans)//2], sentence_spans[-1]]
+        elif sentence_spans:
+            selected_bullets = sentence_spans[:3]
+        else:
+            selected_bullets = [{
+                "sentence_idx": 0,
+                "text": text[:150],
+                "start": 0,
+                "end": min(len(text), 150)
+            }]
+
+        bullet_texts = [b["text"] for b in selected_bullets]
+        summary_output = {
+            "type": "extractive",
+            "bulletPoints": bullet_texts,
+            "bulletsWithTraceability": selected_bullets,
+            "tldr": bullet_texts[0] if bullet_texts else text[:120]
+        }
+
+        # -------------------------------------------------------------------------
+        # Keyphrase Extraction (spaCy noun chunks)
+        # -------------------------------------------------------------------------
         keyphrases = []
         seen_phrases = set()
         for chunk in spacy_doc.noun_chunks:
             clean_chunk = chunk.text.strip()
-            if len(clean_chunk.split()) > 1 and clean_chunk.lower() not in seen_phrases and not chunk.root.is_stop:
-                seen_phrases.add(clean_chunk.lower())
-                keyphrases.append({"phrase": clean_chunk, "score": 0.85})
+            norm_phrase = " ".join(clean_chunk.split()).lower()
+            if len(clean_chunk.split()) > 1 and norm_phrase not in seen_phrases and not chunk.root.is_stop:
+                seen_phrases.add(norm_phrase)
+                keyphrases.append({"phrase": clean_chunk})
                 if len(keyphrases) >= 5:
                     break
 
         if not keyphrases:
-            keyphrases = [{"phrase": "Intelligence Intercept", "score": 0.90}]
+            keyphrases = [{"phrase": "Intelligence Intercept"}]
 
-        # 5. Real Sentence Extraction Summarization (spaCy sentence segmentation)
-        sentences = [sent.text.strip() for sent in spacy_doc.sents if len(sent.text.strip()) > 10]
-        if len(sentences) >= 3:
-            bullets = [sentences[0], sentences[len(sentences)//2], sentences[-1]]
-        elif sentences:
-            bullets = sentences[:3]
-        else:
-            bullets = [text[:100]]
-
-        # 6. Integrity & Risk check
-        is_high_risk = is_threat and ("urgent" in text_lower or "leak" in text_lower or compound_score < -0.4)
-        toxicity = 0.72 if is_high_risk else 0.04
-        if is_high_risk:
-            flagged_count += 1
-
+        # Elapsed processing latency
         elapsed_ms = int((time.time() - start_t) * 1000)
         total_latency += elapsed_ms
 
@@ -412,38 +443,16 @@ def execute_pipeline(req: PipelineRunRequest):
             "language": doc.get("language", "en"),
             "entities": entities,
             "perception": {
-                "sentiment": sentiment,
-                "polarityScore": compound_score,
-                "subjectivityScore": subjectivity,
-                "stance": {
-                    "target": req.targetTopic,
-                    "label": "SUPPORT" if compound_score > 0.15 else "OPPOSE" if compound_score < -0.15 else "NEUTRAL",
-                    "confidence": round(abs(compound_score) * 0.4 + 0.6, 2)
-                },
-                "emotions": {
-                    "anger": anger,
-                    "fear": fear,
-                    "trust": trust,
-                    "joy": joy,
-                    "sadness": sadness,
-                    "surprise": surprise
-                }
+                "sentiment": sentiment_label.upper(),
+                "polarityScore": compound,
+                "subjectivityScore": round(1.0 - neu, 4),
+                "vader": vader_output
             },
-            "topics": [{"topic": "MongoDB Intercept", "confidence": 0.92}],
             "keyphrases": keyphrases,
-            "summary": {
-                "bulletPoints": bullets,
-                "tldr": bullets[0] if bullets else text[:120]
-            },
-            "integrity": {
-                "toxicityScore": toxicity,
-                "propagandaProbability": 0.85 if is_high_risk else 0.05,
-                "flagged": is_high_risk
-            },
-            "overallConfidence": 0.91,
+            "summary": summary_output,
             "processingTimeMs": elapsed_ms,
             "humanValidation": {
-                "status": "flagged" if is_high_risk else "verified"
+                "status": "pending"
             }
         })
 
@@ -456,7 +465,8 @@ def execute_pipeline(req: PipelineRunRequest):
         "records": results,
         "modelsUsed": {
             "ner": "spaCy en_core_web_sm (v3.8.0)",
-            "sentiment": "VADER Lexicon Analyzer (v3.3.2)"
+            "sentiment": "VADER Lexicon Intensity Analyzer (v3.3.2)",
+            "summarization": "spaCy Sentence Segmenter (Extractive SITREP)"
         },
         "stats": {
             "sentimentDistribution": {
@@ -465,8 +475,7 @@ def execute_pipeline(req: PipelineRunRequest):
                 "negative": neg_count
             },
             "topEntities": top_entities,
-            "topTopics": [{"name": "MongoDB Real Intel Stream", "count": len(results)}],
-            "avgConfidence": 0.91,
+            "topTopics": [],
             "flaggedCount": flagged_count,
             "avgLatencyMs": int(total_latency / max(1, len(results)))
         }

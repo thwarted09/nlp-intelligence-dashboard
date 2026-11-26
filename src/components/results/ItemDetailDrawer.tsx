@@ -2,15 +2,11 @@ import React from 'react';
 import { IntelligenceResultDoc } from '../../types/results';
 import { EntityHighlighter } from './EntityHighlighter';
 import { SentimentPolarityBar } from './SentimentPolarityBar';
-import { PerceptionRadar } from './PerceptionRadar';
 import { 
   X, 
   CheckCircle2, 
-  AlertTriangle, 
-  ShieldCheck, 
   FileText, 
   Tag, 
-  Bot, 
   Clock, 
   Edit3,
   ThumbsUp,
@@ -81,61 +77,72 @@ export const ItemDetailDrawer: React.FC<ItemDetailDrawerProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-1.5">
                 <Tag className="h-3.5 w-3.5 text-cyan-400" />
-                <span>Extracted Entities & Analyzed Text</span>
+                <span>Extracted Entities & Analyzed Text (spaCy)</span>
               </span>
               <span className="text-[11px] font-mono text-cyan-400">
-                {item.entities.length} entities tagged
+                {item.entities.length} entities identified
               </span>
             </div>
             <EntityHighlighter text={item.originalDoc.text} entities={item.entities} />
           </div>
 
-          {/* Dual Perception & Emotion Meters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* VADER Polarity Meter */}
+          <div>
             <SentimentPolarityBar perception={item.perception} />
-            <PerceptionRadar emotions={item.perception.emotions} />
           </div>
 
-          {/* Executive Intelligence Synthesis */}
-          {item.summary.bulletPoints.length > 0 && (
+          {/* Keyphrases */}
+          {item.keyphrases && item.keyphrases.length > 0 && (
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                Executive Intelligence Synthesis (3 Bullets)
+                Extracted Keyphrases (Noun Chunks)
               </h4>
-              <ul className="space-y-1.5 text-xs text-slate-300">
-                {item.summary.bulletPoints.map((bullet, idx) => (
-                  <li key={idx} className="flex items-start space-x-2">
-                    <span className="text-cyan-400 font-bold shrink-0">•</span>
-                    <span>{bullet}</span>
-                  </li>
+              <div className="flex flex-wrap gap-1.5">
+                {item.keyphrases.map((kp, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center px-2 py-0.5 rounded bg-slate-800 text-slate-200 text-xs font-mono border border-slate-700"
+                  >
+                    {kp.phrase}
+                  </span>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
 
-          {/* Integrity & Disinfo Threat Signals */}
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${item.integrity.flagged ? 'bg-rose-950 text-rose-400' : 'bg-emerald-950 text-emerald-400'}`}>
-                  {item.integrity.flagged ? <AlertTriangle className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-slate-200">
-                    {item.integrity.flagged ? 'Flagged for High Risk / Coordinated Influence' : 'Information Integrity Normal'}
-                  </h5>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Toxicity: {(item.integrity.toxicityScore * 100).toFixed(0)}% • Bot Likelihood: {(item.integrity.propagandaProbability * 100).toFixed(0)}%
-                  </p>
-                </div>
+          {/* Extractive SITREP Summary with Traceability */}
+          {item.summary?.bulletPoints?.length > 0 && (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Extractive SITREP Synthesis (3 Bullets)
+                </h4>
+                <span className="text-[10px] font-mono text-slate-500 uppercase">
+                  Source-sentence traceable
+                </span>
               </div>
-
-              <div className="text-right font-mono text-xs text-slate-400">
-                <span>Model Confidence: </span>
-                <strong className="text-cyan-400">{(item.overallConfidence * 100).toFixed(0)}%</strong>
-              </div>
+              <ul className="space-y-2 text-xs text-slate-300">
+                {item.summary.bulletsWithTraceability && item.summary.bulletsWithTraceability.length > 0
+                  ? item.summary.bulletsWithTraceability.map((bullet, idx) => (
+                      <li key={idx} className="flex items-start space-x-2">
+                        <span className="text-cyan-400 font-bold shrink-0 mt-0.5">•</span>
+                        <div className="flex-1">
+                          <span>{bullet.text}</span>
+                          <span className="ml-2 inline-block text-[9px] font-mono text-slate-500 bg-slate-900 px-1 py-0.2 rounded border border-slate-800">
+                            Sent #{bullet.sentence_idx + 1} (chars {bullet.start}-{bullet.end})
+                          </span>
+                        </div>
+                      </li>
+                    ))
+                  : item.summary.bulletPoints.map((bullet, idx) => (
+                      <li key={idx} className="flex items-start space-x-2">
+                        <span className="text-cyan-400 font-bold shrink-0">•</span>
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+              </ul>
             </div>
-          </div>
+          )}
 
           {/* Human-in-the-Loop Analyst Validation Section */}
           <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-4 space-y-3">
@@ -147,7 +154,7 @@ export const ItemDetailDrawer: React.FC<ItemDetailDrawerProps> = ({
               type="text"
               value={analystNotes}
               onChange={e => setAnalystNotes(e.target.value)}
-              placeholder="Add optional reviewer observation or note (e.g. 'Accurately classified stance')..."
+              placeholder="Add reviewer notes or observations..."
               className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
             />
             <div className="flex items-center justify-between pt-1">
