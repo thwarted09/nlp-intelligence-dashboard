@@ -1,6 +1,7 @@
 export type NLPTaskId =
   | 'ner'
   | 'sentiment_perception'
+  | 'domain_classification'
   | 'stance_detection'
   | 'emotion_analysis'
   | 'narrative_classification'

@@ -94,10 +94,12 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   };
 
   const handleExportCSV = () => {
-    const headers = ['DocID', 'Source', 'Sentiment', 'CompoundScore', 'VaderPos', 'VaderNeu', 'VaderNeg', 'EntitiesCount', 'SitreBullet', 'TextSnippet'];
+    const headers = ['DocID', 'Source', 'Domain', 'DomainScore', 'Sentiment', 'CompoundScore', 'VaderPos', 'VaderNeu', 'VaderNeg', 'EntitiesCount', 'SitreBullet', 'TextSnippet'];
     const rows = records.map(r => [
       r.docId,
       `"${(r.originalDoc?.source || '').replace(/"/g, '""')}"`,
+      r.domain?.domain || 'N/A',
+      r.domain?.score ?? 'N/A',
       r.perception.sentiment,
       r.perception.polarityScore,
       r.perception.vader?.pos ?? 0,
@@ -122,6 +124,15 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const posCount = records.filter(r => r.perception.sentiment === 'POSITIVE').length;
   const neuCount = records.filter(r => r.perception.sentiment === 'NEUTRAL').length;
   const negCount = records.filter(r => r.perception.sentiment === 'NEGATIVE').length;
+
+  const domainCounts = records.reduce<Record<string, number>>((acc, r) => {
+    if (r.domain?.domain) {
+      acc[r.domain.domain] = (acc[r.domain.domain] || 0) + 1;
+    }
+    return acc;
+  }, {});
+  const domainEntries = Object.entries(domainCounts).sort((a, b) => b[1] - a[1]);
+  const hasDomainResults = domainEntries.length > 0;
 
   return (
     <div className="space-y-6">
@@ -280,6 +291,37 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
       </div>
 
+      {/* Domain Distribution Chart (Phase B) */}
+      {hasDomainResults && (
+        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-1.5">
+              <Layers className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Domain Classification Distribution (Zero-Shot NLI)</span>
+            </h4>
+            <span className="text-[10px] text-slate-500 font-mono">{domainEntries.length} domains</span>
+          </div>
+          <div className="space-y-2">
+            {domainEntries.map(([domain, count]) => (
+              <div key={domain} className="flex items-center space-x-3">
+                <span className="w-44 shrink-0 text-xs text-slate-300 truncate font-mono">{domain}</span>
+                <div className="flex-1 h-2.5 bg-slate-950 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      domain === 'UNKNOWN' ? 'bg-slate-600' : 'bg-cyan-500'
+                    }`}
+                    style={{ width: `${(count / total) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[11px] font-mono text-cyan-400 w-16 text-right">
+                  {count} ({((count / total) * 100).toFixed(0)}%)
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filter and Table of Output Results */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden space-y-3 p-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -346,7 +388,12 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                       <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-1.5 py-0.2 rounded border border-cyan-800/40">
                         {item.entities.length} entities
                       </span>
-                      {item.integrity.flagged && (
+                      {item.domain?.domain && item.domain.domain !== 'UNKNOWN' && (
+                        <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/70 px-1.5 py-0.2 rounded border border-cyan-800/50">
+                          {item.domain.domain}
+                        </span>
+                      )}
+                      {item.integrity?.flagged && (
                         <span className="text-[10px] font-mono text-rose-400 bg-rose-950/60 px-1.5 py-0.2 rounded border border-rose-800/40">
                           Risk Flag
                         </span>

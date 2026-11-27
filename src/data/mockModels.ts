@@ -158,6 +158,35 @@ export const PREDEFINED_NLP_TASKS: NLPTaskDefinition[] = [
     ],
   },
   {
+    id: 'domain_classification',
+    name: 'Domain Classification',
+    category: 'Classification & Topics',
+    description: 'Classifies documents into broad subject domains (Defence & Military, Politics, Economy, Technology, Cybersecurity, Health, etc.) using zero-shot NLI.',
+    badge: 'Zero-Shot NLI',
+    icon: 'Layers',
+    defaultModel: 'cross-encoder/nli-MiniLM2-L6-H768',
+    availableModels: [
+      { id: 'cross-encoder/nli-MiniLM2-L6-H768', name: 'cross-encoder/nli-MiniLM2-L6-H768 (CPU Fast)', provider: 'HuggingFace', latencyMs: 65, recommended: true },
+      { id: 'typeform/distilbart-mnli-12-3', name: 'typeform/distilbart-mnli-12-3', provider: 'HuggingFace', latencyMs: 120, recommended: false },
+      { id: 'facebook/bart-large-mnli', name: 'facebook/bart-large-mnli', provider: 'HuggingFace', latencyMs: 220, recommended: false },
+    ],
+    defaultParams: {
+      confidenceThreshold: 0.25,
+    },
+    paramSchema: [
+      {
+        key: 'confidenceThreshold',
+        label: 'UNKNOWN Threshold',
+        type: 'slider',
+        min: 0.1,
+        max: 0.8,
+        step: 0.05,
+        default: 0.25,
+        description: 'Predictions below this confidence score are marked as UNKNOWN.',
+      },
+    ],
+  },
+  {
     id: 'narrative_classification',
     name: 'Narrative & Thematic Classification',
     category: 'Classification & Topics',

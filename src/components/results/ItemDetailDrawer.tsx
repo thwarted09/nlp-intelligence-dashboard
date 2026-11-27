@@ -86,6 +86,55 @@ export const ItemDetailDrawer: React.FC<ItemDetailDrawerProps> = ({
             <EntityHighlighter text={item.originalDoc.text} entities={item.entities} />
           </div>
 
+          {/* Domain Classification Badge & Scores */}
+          {item.domain && (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                  Domain Classification (Zero-Shot NLI)
+                </h4>
+                <span className="text-[10px] font-mono text-slate-500">
+                  {item.domain.model || 'zero-shot'}
+                </span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${
+                    item.domain.domain === 'UNKNOWN'
+                      ? 'bg-slate-800 text-slate-400 border-slate-700'
+                      : 'bg-cyan-950/80 text-cyan-300 border-cyan-700/60'
+                  }`}
+                >
+                  {item.domain.domain}
+                </span>
+                <span className="text-xs font-mono text-slate-400">
+                  Confidence: <strong className="text-slate-200">{(item.domain.score * 100).toFixed(1)}%</strong>
+                </span>
+                {item.domain.below_threshold && (
+                  <span className="text-[10px] font-mono text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded border border-amber-800/40">
+                    Below threshold
+                  </span>
+                )}
+              </div>
+              {item.domain.all_scores && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1">
+                  {Object.entries(item.domain.all_scores)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 6)
+                    .map(([label, score]) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between rounded bg-slate-900/90 px-2 py-1 text-[11px] font-mono border border-slate-800/80"
+                      >
+                        <span className="text-slate-300 truncate mr-2">{label}</span>
+                        <span className="text-cyan-400 shrink-0">{(score * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* VADER Polarity Meter */}
           <div>
             <SentimentPolarityBar perception={item.perception} />

@@ -59,9 +59,14 @@ export interface IntelligenceResultDoc {
     confidence: number;
   }[];
   domain?: {
+    task?: string;
     domain: string;
     score: number;
+    all_scores?: Record<string, number>;
     candidates?: Record<string, number>;
+    below_threshold?: boolean;
+    method?: string;
+    model?: string;
   };
   category?: {
     category: string;
@@ -100,6 +105,7 @@ export interface PipelineOutputData {
       neutral: number;
       negative: number;
     };
+    domainDistribution?: Record<string, number>;
     topEntities: { name: string; category: string; count: number }[];
     topTopics: { name: string; count: number }[];
     flaggedCount: number;

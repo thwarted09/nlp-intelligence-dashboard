@@ -16,6 +16,7 @@ from bson import ObjectId
 # Real NLP Libraries
 import spacy
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from nlp_engine.domain_classifier import classify_domain, DEFAULT_DOMAINS, DEFAULT_THRESHOLD
 
 print("Loading real spaCy (en_core_web_sm) and VADER sentiment models...")
 try:
@@ -308,7 +309,15 @@ def execute_pipeline(req: PipelineRunRequest):
     total_latency = 0
     pos_count, neu_count, neg_count = 0, 0, 0
     entity_map = {}
+    domain_distribution: Dict[str, int] = {}
     flagged_count = 0
+
+    run_domain = "domain_classification" in active_task_ids
+    domain_stage = next((s for s in active_stages if s.get("taskId") == "domain_classification"), None)
+    domain_params = domain_stage.get("parameters", {}) if domain_stage else {}
+    domain_threshold = float(domain_params.get("confidenceThreshold", DEFAULT_THRESHOLD))
+    custom_domains = domain_params.get("candidateLabels") or None
+    domain_model_used = None
 
     for doc in documents:
         text = doc.get("text", "")
@@ -432,11 +441,26 @@ def execute_pipeline(req: PipelineRunRequest):
         if not keyphrases:
             keyphrases = [{"phrase": "Intelligence Intercept"}]
 
+        # -------------------------------------------------------------------------
+        # B1. Real Domain Classification (Zero-Shot NLI)
+        # -------------------------------------------------------------------------
+        domain_output = None
+        if run_domain:
+            domain_output = classify_domain(
+                text,
+                candidate_labels=custom_domains,
+                threshold=domain_threshold,
+            )
+            dom_label = domain_output["domain"]
+            domain_distribution[dom_label] = domain_distribution.get(dom_label, 0) + 1
+            if not domain_model_used:
+                domain_model_used = domain_output.get("model")
+
         # Elapsed processing latency
         elapsed_ms = int((time.time() - start_t) * 1000)
         total_latency += elapsed_ms
 
-        results.append({
+        record_obj: Dict[str, Any] = {
             "docId": doc.get("_id", f"doc-{len(results)}"),
             "originalDoc": doc,
             "cleanedText": text,
@@ -454,26 +478,35 @@ def execute_pipeline(req: PipelineRunRequest):
             "humanValidation": {
                 "status": "pending"
             }
-        })
+        }
+        if domain_output is not None:
+            record_obj["domain"] = domain_output
+
+        results.append(record_obj)
 
     top_entities = [{"name": k, "category": "ENTITY", "count": v} for k, v in sorted(entity_map.items(), key=lambda x: x[1], reverse=True)[:8]]
+
+    models_used = {
+        "ner": "spaCy en_core_web_sm (v3.8.0)",
+        "sentiment": "VADER Lexicon Intensity Analyzer (v3.3.2)",
+        "summarization": "spaCy Sentence Segmenter (Extractive SITREP)"
+    }
+    if domain_model_used:
+        models_used["domain_classification"] = domain_model_used
 
     output_data = {
         "jobId": job_id,
         "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "totalRecords": len(results),
         "records": results,
-        "modelsUsed": {
-            "ner": "spaCy en_core_web_sm (v3.8.0)",
-            "sentiment": "VADER Lexicon Intensity Analyzer (v3.3.2)",
-            "summarization": "spaCy Sentence Segmenter (Extractive SITREP)"
-        },
+        "modelsUsed": models_used,
         "stats": {
             "sentimentDistribution": {
                 "positive": pos_count,
                 "neutral": neu_count,
                 "negative": neg_count
             },
+            "domainDistribution": domain_distribution,
             "topEntities": top_entities,
             "topTopics": [],
             "flaggedCount": flagged_count,
